@@ -47,7 +47,7 @@ public class Team implements ObservableSubject, Observer {
     private Long idCaptain; 
 
     @ElementCollection
-    private List<Long> idPlayers = new ArrayList<>();
+    private List<Long> players = new ArrayList<>();
 
     @Column(nullable = false)
     private int currentPlayers;
@@ -60,6 +60,11 @@ public class Team implements ObservableSubject, Observer {
 
     @Transient
     private boolean isValidTeam = false;
+
+    @ElementCollection
+    private List<Long> requests = new ArrayList<>();
+
+
 
 
     @Override
@@ -113,22 +118,24 @@ public class Team implements ObservableSubject, Observer {
 
     public void addPlayer(Long playerId) {
         if (currentPlayers < maxPlayers) {
-            idPlayers.add(playerId);
+            players.add(playerId);
             currentPlayers++;
         } else {
-            throw new IllegalStateException("Cannot add more players, team is full.");
+            throw new IllegalStateException("No es posible agregar más jugadores, el equipo está lleno.");
         }
     }
 
     public void removePlayer(Long playerId) {
-        if (idPlayers.remove(playerId) && playerId != idCaptain) {
+        if (players.remove(playerId) && playerId != idCaptain) {
             currentPlayers--;
         } else if (playerId == idCaptain) {
-            throw new IllegalStateException("Cannot remove the team captain.");
+            throw new IllegalStateException("No es posible eliminar al capitán del equipo.");
         } else {
-            throw new IllegalStateException("Player not found in the team.");
+            throw new IllegalStateException("Jugador no encontrado en el equipo.");
         }
     }
+
+    
 
     public boolean playersWithDiferentDorsal() {
         return true;

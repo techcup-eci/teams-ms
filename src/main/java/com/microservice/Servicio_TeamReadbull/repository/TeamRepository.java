@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.microservice.Servicio_TeamReadbull.model.Team;
 
@@ -14,4 +16,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     Team findByName(String name);
 
     List<Team> findAll();
+
+    @Query("SELECT COUNT(t) > 0 FROM Team t JOIN t.playerIds p WHERE p = :jugadorId")
+    boolean existsPlayerInAnyTeam(@Param("jugadorId") Long jugadorId);
 }

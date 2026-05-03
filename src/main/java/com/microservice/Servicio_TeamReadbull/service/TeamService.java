@@ -1,10 +1,13 @@
 package com.microservice.Servicio_TeamReadbull.service;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
+import com.microservice.Servicio_TeamReadbull.dto.Response.SolicitudResponseDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
+import com.microservice.Servicio_TeamReadbull.exception.UnauthorizedException;
 import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
 import com.microservice.Servicio_TeamReadbull.model.Team;
 import com.microservice.Servicio_TeamReadbull.repository.TeamRepository;
@@ -24,13 +27,14 @@ public class TeamService {
     private final TeamMapper teamMapper;
 
 
+
     public TeamResponseDTO createTeam(TeamRequestDTO dto) {
         Team team = new Team();
         team.setName(dto.getName());
         team.setIdTournament(dto.getIdTournament());
         team.setIdCaptain(dto.getIdCaptain());
-        team.setIdPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
-        team.setCurrentPlayers(team.getIdPlayers().size());
+        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
+        team.setCurrentPlayers(team.getPlayers().size());
 
         Team saved = teamRepository.save(team);
         log.info("Equipo creado con ID: {} y nombre: {}", saved.getId(), saved.getName());
@@ -53,8 +57,8 @@ public class TeamService {
         team.setName(dto.getName());
         team.setIdTournament(dto.getIdTournament());
         team.setIdCaptain(dto.getIdCaptain());
-        team.setIdPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
-        team.setCurrentPlayers(team.getIdPlayers().size());
+        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
+        team.setCurrentPlayers(team.getPlayers().size());
         Team updated = teamRepository.save(team);
         log.info("Equipo actualizado con ID: {} y nombre: {}", id, updated.getName());
         return teamMapper.toDto(updated);
@@ -84,5 +88,66 @@ public class TeamService {
         return teamMapper.toDto(saved);
     }
 
+    public List<Long> getPendingRequest(Long teamId, Long userId) {
+        Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
+        if (!team.getIdCaptain().equals(userId)) {
+            throw UnauthorizedException.notCaptain(teamId);
+        }
+
+        return team.getRequests();  
+    }
+
+    public void rejectRequest(Long teamId, Long playerId, Long userId, String authHeader) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+        if (userId == null || !team.getIdCaptain().equals(userId)) {
+            throw UnauthorizedException.notCaptain(teamId);
+        }
+
+        team.getRequests().remove(playerId);
+        teamRepository.save(team);
+        log.info("Solicitud del jugador con ID {} rechazada por capitán del equipo ID {}", playerId, teamId);
+    }
+
+    public void acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+        if (userId == null || !team.getIdCaptain().equals(userId)) {
+            throw UnauthorizedException.notCaptain(teamId);
+        }
+
+        team.addPlayer(playerId);
+        team.getRequests().remove(playerId);
+        teamRepository.save(team);
+        log.info("Solicitud del jugador con ID {} aceptada por capitán del equipo ID {}", playerId, teamId);
+    }
+
+    public void sendRequest(Long teamId, Long jugadorId) {
+
+        Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+
+        if (team.getPlayers().size() >= team.getMaxPlayers()) {
+            throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores");
+        }
+
+        if (team.getPlayers().contains(jugadorId)) {
+            throw new IllegalStateException("El jugador ya pertenece a este equipo");
+        }
+
+        if (teamRepository.existsPlayerInAnyTeam(jugadorId)) {
+            throw new IllegalStateException("El jugador ya pertenece a otro equipo");
+        }
+
+        if (team.getRequests().contains(jugadorId)) {
+            throw new IllegalStateException("El jugador ya tiene una solicitud pendiente en este equipo");
+        }
+
+        team.getRequests().add(jugadorId);
+        teamRepository.save(team);
+
+        log.info("Jugador con ID {} envió solicitud al equipo ID {}", jugadorId, teamId);
+    }
 }

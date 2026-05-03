@@ -1,17 +1,23 @@
 package com.microservice.Servicio_TeamReadbull.controllers;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
+import com.microservice.Servicio_TeamReadbull.dto.Response.SolicitudResponseDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.service.TeamService;
 
@@ -63,4 +69,45 @@ public class TeamController {
         TeamResponseDTO response = teamService.removePlayer(teamId, playerId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{id}/solicitudes")
+    public ResponseEntity<List<Long>> getPendingResquest(
+            @PathVariable Long userId,
+            @PathVariable Long teamId,
+            @RequestHeader("Authorization") String authHeader) {
+        List<Long> response = teamService.getPendingRequest(teamId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/solicitudes/{solicitudId}/reject")
+    public ResponseEntity<Void> rejectRequest(
+            @PathVariable Long userId,
+            @PathVariable Long playerId,
+            @PathVariable Long teamId,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        teamService.rejectRequest(teamId, playerId, userId, authHeader);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/solicitudes/{solicitudId}/accept")
+    public ResponseEntity<Void> acceptRequest(
+            @PathVariable Long userId,
+            @PathVariable Long playerId,
+            @PathVariable Long teamId,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        teamService.acceptRequest(teamId, playerId, userId, authHeader);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/solicitudes")
+    public ResponseEntity<Void> sendRequest(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long jugadorId) {
+        
+        teamService.sendRequest(id, jugadorId);
+        return ResponseEntity.noContent().build();
+    }
+
 }

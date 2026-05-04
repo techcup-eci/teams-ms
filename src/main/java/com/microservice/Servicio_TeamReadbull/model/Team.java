@@ -2,6 +2,7 @@ package com.microservice.Servicio_TeamReadbull.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import com.microservice.Servicio_TeamReadbull.model.Notification.ObservableSubject;
 import com.microservice.Servicio_TeamReadbull.model.Notification.Observer;
@@ -14,6 +15,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import jakarta.persistence.PrePersist;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,7 +46,7 @@ public class Team implements ObservableSubject, Observer {
     @Column(nullable = true)
     private Long idTournament; 
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Long idCaptain; 
 
     @ElementCollection
@@ -51,6 +54,12 @@ public class Team implements ObservableSubject, Observer {
 
     @Column(nullable = false)
     private int currentPlayers;
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private String code;
+
+    @Column(nullable = false)
+    private boolean isRegistered = false;
 
     @Transient
     private int maxPlayers = 12;
@@ -135,6 +144,12 @@ public class Team implements ObservableSubject, Observer {
         }
     }
 
+    @PrePersist
+    private void generateCode() {
+        if (this.code == null) {
+            this.code = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+    }
     
 
     public boolean playersWithDiferentDorsal() {

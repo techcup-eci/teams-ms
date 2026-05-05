@@ -57,6 +57,12 @@ public class TeamController {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
+    @GetMapping
+    public ResponseEntity<List<TeamResponseDTO>> getAllTeams() {
+        List<TeamResponseDTO> teams = teamService.getAllteams();
+        return ResponseEntity.ok(teams);
+    }
+
 
     @PostMapping("/{teamId}/players/{playerId}")
     public ResponseEntity<TeamResponseDTO> addPlayer(@PathVariable Long teamId, @PathVariable Long playerId) {

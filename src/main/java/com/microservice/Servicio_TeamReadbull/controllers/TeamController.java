@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.model.Team;
+import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.service.TeamService;
 
 @RestController
@@ -16,44 +16,41 @@ public class TeamController {
 
     @Autowired
     private TeamService teamService;
-    
+
     @PostMapping
-    public ResponseEntity<?> createTeam(@Valid @RequestBody TeamRequestDTO dto) {
-        try {
-            // Llamamos al servicio que valida las carreras y dorsales
-            Team createdTeam = teamService.createTeam(dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdTeam);
-        } catch (IllegalArgumentException e) {
-            // Si alguna regla falla, devolvemos un 400 Bad Request con el mensaje de error
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno al crear el equipo");
-        }
+    public ResponseEntity<TeamResponseDTO> createTeam(@Valid @RequestBody TeamRequestDTO dto) {
+        TeamResponseDTO response = teamService.createTeam(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-
     @GetMapping("/{id}")
-    public ResponseEntity<?> getTeamById(@PathVariable Long id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<TeamResponseDTO> getTeamById(
+            @PathVariable Long id,
+            @Valid @RequestBody TeamRequestDTO dto) {
+        TeamResponseDTO response = teamService.updateTeam(id, dto);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        teamService.deleteTeam(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateTeam(@PathVariable Long id, @Valid @RequestBody TeamRequestDTO dto) {
+    public ResponseEntity<TeamResponseDTO> updateTeam(@PathVariable Long id, @Valid @RequestBody TeamRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     @PostMapping("/{teamId}/players/{playerId}")
-    public ResponseEntity<?> addPlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<TeamResponseDTO> addPlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
+        TeamResponseDTO response = teamService.addPlayer(teamId, playerId);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{teamId}/players/{playerId}")
-    public ResponseEntity<?> removePlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<TeamResponseDTO> removePlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
+        TeamResponseDTO response = teamService.removePlayer(teamId, playerId);
+        return ResponseEntity.ok(response);
     }
 }

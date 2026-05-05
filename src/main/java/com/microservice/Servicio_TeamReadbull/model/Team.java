@@ -120,7 +120,6 @@ public class Team implements ObservableSubject, Observer {
         return id != null ? id.hashCode() : 0;
     }
 
-
     public boolean hasValidNumberOfPlayers() {
         if(currentPlayers<= maxPlayers && currentPlayers >= minPlayers) {
             return true;

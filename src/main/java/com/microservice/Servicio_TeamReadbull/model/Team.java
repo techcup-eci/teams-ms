@@ -20,8 +20,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,7 +35,18 @@ public class Team implements ObservableSubject, Observer {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @Column(nullable = false)
+    private String colors;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String state = "DRAFT"; 
+
+    @Column(nullable = false)
+    private String photo; 
+
     @Transient
+    @Builder.Default
     private List<Observer> subscribers = new ArrayList<>();
 
     @Column(nullable = true)
@@ -47,24 +56,27 @@ public class Team implements ObservableSubject, Observer {
     private Long idCaptain; 
 
     @ElementCollection
+    @Builder.Default
     private List<Long> players = new ArrayList<>();
 
     @Column(nullable = false)
     private int currentPlayers;
 
     @Transient
+    @Builder.Default
     private int maxPlayers = 12;
 
     @Transient
+    @Builder.Default
     private int minPlayers = 7;
 
     @Transient
+    @Builder.Default
     private boolean isValidTeam = false;
 
     @ElementCollection
+    @Builder.Default
     private List<Long> requests = new ArrayList<>();
-
-
 
 
     @Override
@@ -135,8 +147,6 @@ public class Team implements ObservableSubject, Observer {
         }
     }
 
-    
-
     public boolean playersWithDiferentDorsal() {
         return true;
     }
@@ -154,6 +164,5 @@ public class Team implements ObservableSubject, Observer {
         } else {
             this.isValidTeam = true;
         }
-
     }
 }

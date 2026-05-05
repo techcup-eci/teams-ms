@@ -1,153 +1,106 @@
 package com.microservice.Servicio_TeamReadbull.service;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Response.SolicitudResponseDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
-import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
-import com.microservice.Servicio_TeamReadbull.exception.UnauthorizedException;
-import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
+import com.microservice.Servicio_TeamReadbull.dto.Response.UserProfileDTO;
 import com.microservice.Servicio_TeamReadbull.model.Team;
 import com.microservice.Servicio_TeamReadbull.repository.TeamRepository;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.stereotype.Service;
-
-@Slf4j //libreria para logs
-@RequiredArgsConstructor
+@Slf4j
 @Service
 public class TeamService {
 
-    private final TeamRepository teamRepository;
+    @Autowired
+    private TeamRepository teamRepository;
 
-    private final TeamMapper teamMapper;
+    @Autowired
+    private RestTemplate restTemplate;
 
+    // IMPORTANTE: URL del microservicio de usuarios. ¡Pregúntale a tu equipo el puerto exacto!
+    private final String USUARIOS_MS_URL = "http://localhost:8081/api/users/";
 
+    public Team createTeam(TeamRequestDTO request) {
+        log.info("Creando equipo. IDs recibidos: {}", request.getPlayers());
 
-    public TeamResponseDTO createTeam(TeamRequestDTO dto) {
+        // 1. Regla básica: Mínimo 7, máximo 12[cite: 2]
+        if (request.getPlayers().size() < 7 || request.getPlayers().size() > 12) {
+            throw new IllegalArgumentException("El equipo debe tener entre 7 y 12 jugadores.");
+        }
+
+        // 2. Usar los métodos de validación conectados al Microservicio de Usuarios[cite: 2]
+        if (!playersWithDiferentDorsal(request.getPlayers())) {
+            throw new IllegalArgumentException("No puede haber jugadores con el mismo dorsal en el equipo.");
+        }
+
+        if (!halfOfStudentsAreOfAllowedPrograms(request.getPlayers())) {
+            throw new IllegalArgumentException("Más de la mitad del equipo debe pertenecer a Sistemas, IA, Ciberseguridad o Estadística.");
+        }
+
+        // 3. Guardar en BD (Solo nuestra info y la lista de IDs)[cite: 2]
         Team team = new Team();
-        team.setName(dto.getName());
-        team.setIdTournament(dto.getIdTournament());
-        team.setIdCaptain(dto.getIdCaptain());
-        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
-        team.setCurrentPlayers(team.getPlayers().size());
+        team.setName(request.getName());
+        team.setColors(request.getColors());
+        team.setIdCaptain(request.getCaptainId()); 
+        team.setPhoto(request.getPhoto());
+        team.setPlayers(request.getPlayers());
+        team.setCurrentPlayers(request.getPlayers().size());
+        team.setValidTeam(true); 
 
-        Team saved = teamRepository.save(team);
-        log.info("Equipo creado con ID: {} y nombre: {}", saved.getId(), saved.getName());
-        return teamMapper.toDto(saved);
+        return teamRepository.save(team);
     }
 
-    public void deleteTeam(Long id){
-        if (!teamRepository.existsById(id)) {
-            throw ResourceNotFoundException.notFound("Team", id);
+    public boolean playersWithDiferentDorsal(List<Long> playerIds) {
+        Set<Integer> dorsals = new HashSet<>();
+        
+        for (Long id : playerIds) {
+            try {
+                // El RestTemplate hace la petición HTTP al otro microservicio
+                UserProfileDTO user = restTemplate.getForObject(USUARIOS_MS_URL + id, UserProfileDTO.class);
+                
+                if (user != null && user.getDorsal() != null) {
+                    if (!dorsals.add(user.getDorsal())) {
+                        return false; // Si no se pudo añadir al Set, es porque ya existía un dorsal igual[cite: 2]
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error al consultar el usuario con ID {}: {}", id, e.getMessage());
+                throw new RuntimeException("No se pudo comunicar con el MS de Usuarios para verificar al jugador " + id);
+            }
         }
-        teamRepository.deleteById(id);
-        log.info("Equipo eliminado con ID: {} y nombre: {}", id, teamRepository.findById(id).map(Team::getName));
+        return true; 
     }
 
-    public TeamResponseDTO updateTeam(Long id, TeamRequestDTO dto){
-        if (!teamRepository.existsById(id)) {
-            throw ResourceNotFoundException.notFound("Team", id);
+    public boolean halfOfStudentsAreOfAllowedPrograms(List<Long> playerIds) {
+        // Los programas permitidos según los criterios de aceptación[cite: 2]
+        List<String> allowedPrograms = List.of(
+            "Ingeniería de Sistemas", "Ingeniería de IA", 
+            "Ingeniería de Ciberseguridad", "Ingeniería Estadística"
+        );
+        
+        int countAllowed = 0;
+        
+        for (Long id : playerIds) {
+            try {
+                UserProfileDTO user = restTemplate.getForObject(USUARIOS_MS_URL + id, UserProfileDTO.class);
+                
+                if (user != null && allowedPrograms.contains(user.getAcademicProgram())) {
+                    countAllowed++;
+                }
+            } catch (Exception e) {
+                log.error("Error al consultar el usuario con ID {}: {}", id, e.getMessage());
+                throw new RuntimeException("No se pudo comunicar con el MS de Usuarios para verificar el programa del jugador " + id);
+            }
         }
-        Team team = teamMapper.toEntity(dto);
-        team.setName(dto.getName());
-        team.setIdTournament(dto.getIdTournament());
-        team.setIdCaptain(dto.getIdCaptain());
-        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
-        team.setCurrentPlayers(team.getPlayers().size());
-        Team updated = teamRepository.save(team);
-        log.info("Equipo actualizado con ID: {} y nombre: {}", id, updated.getName());
-        return teamMapper.toDto(updated);
-    }
-
-    public TeamResponseDTO getTeamById(Long id) {
-        Team team = teamRepository.findById(id)
-            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
-        return teamMapper.toDto(team);
-    }
-
-    public TeamResponseDTO addPlayer(Long teamId, Long playerId) {
-        Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-        team.addPlayer(playerId);
-        Team saved = teamRepository.save(team);
-        log.info("Jugador  con ID: {} agregado al equipo: {}", playerId, saved.getName());
-        return teamMapper.toDto(saved);
-    }
-
-    public TeamResponseDTO removePlayer(Long teamId, Long playerId) {
-        Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-        team.removePlayer(playerId);
-        Team saved = teamRepository.save(team);
-        log.info("Jugador  con ID: {} eliminado del equipo: {}", playerId, saved.getName());
-        return teamMapper.toDto(saved);
-    }
-
-    public List<Long> getPendingRequest(Long teamId, Long userId) {
-        Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-
-        if (!team.getIdCaptain().equals(userId)) {
-            throw UnauthorizedException.notCaptain(teamId);
-        }
-
-        return team.getRequests();  
-    }
-
-    public void rejectRequest(Long teamId, Long playerId, Long userId, String authHeader) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-        if (userId == null || !team.getIdCaptain().equals(userId)) {
-            throw UnauthorizedException.notCaptain(teamId);
-        }
-
-        team.getRequests().remove(playerId);
-        teamRepository.save(team);
-        log.info("Solicitud del jugador con ID {} rechazada por capitán del equipo ID {}", playerId, teamId);
-    }
-
-    public void acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-        if (userId == null || !team.getIdCaptain().equals(userId)) {
-            throw UnauthorizedException.notCaptain(teamId);
-        }
-
-        team.addPlayer(playerId);
-        team.getRequests().remove(playerId);
-        teamRepository.save(team);
-        log.info("Solicitud del jugador con ID {} aceptada por capitán del equipo ID {}", playerId, teamId);
-    }
-
-    public void sendRequest(Long teamId, Long jugadorId) {
-
-        Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-
-        if (team.getPlayers().size() >= team.getMaxPlayers()) {
-            throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores");
-        }
-
-        if (team.getPlayers().contains(jugadorId)) {
-            throw new IllegalStateException("El jugador ya pertenece a este equipo");
-        }
-
-        if (teamRepository.existsPlayerInAnyTeam(jugadorId)) {
-            throw new IllegalStateException("El jugador ya pertenece a otro equipo");
-        }
-
-        if (team.getRequests().contains(jugadorId)) {
-            throw new IllegalStateException("El jugador ya tiene una solicitud pendiente en este equipo");
-        }
-
-        team.getRequests().add(jugadorId);
-        teamRepository.save(team);
-
-        log.info("Jugador con ID {} envió solicitud al equipo ID {}", jugadorId, teamId);
+    
+        return countAllowed > (playerIds.size() / 2.0); 
     }
 }

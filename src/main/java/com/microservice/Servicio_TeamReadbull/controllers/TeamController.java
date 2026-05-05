@@ -1,113 +1,59 @@
 package com.microservice.Servicio_TeamReadbull.controllers;
 
-import java.util.List;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Response.SolicitudResponseDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
-import com.microservice.Servicio_TeamReadbull.service.TeamService;
-
+import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
+import com.microservice.Servicio_TeamReadbull.model.Team;
+import com.microservice.Servicio_TeamReadbull.service.TeamService;
+
 @RestController
-@RequestMapping("/api/teams")
+@RequestMapping("/equipos")
 public class TeamController {
 
-    private final TeamService teamService;
-
-    public TeamController(TeamService teamService) {
-        this.teamService = teamService;
-    }
-
+    @Autowired
+    private TeamService teamService;
+    
     @PostMapping
-    public ResponseEntity<TeamResponseDTO> createTeam(@Valid @RequestBody TeamRequestDTO dto) {
-        TeamResponseDTO response = teamService.createTeam(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<?> createTeam(@Valid @RequestBody TeamRequestDTO dto) {
+        try {
+            // Llamamos al servicio que valida las carreras y dorsales
+            Team createdTeam = teamService.createTeam(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdTeam);
+        } catch (IllegalArgumentException e) {
+            // Si alguna regla falla, devolvemos un 400 Bad Request con el mensaje de error
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno al crear el equipo");
+        }
     }
+
 
     @GetMapping("/{id}")
-    public ResponseEntity<TeamResponseDTO> getTeamById(
-            @PathVariable Long id, 
-            @Valid @RequestBody TeamRequestDTO dto) {
-        TeamResponseDTO response = teamService.updateTeam(id, dto);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> getTeamById(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
-        teamService.deleteTeam(id);
-        return ResponseEntity.noContent().build();
-    }   
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TeamResponseDTO> updateTeam(@PathVariable Long id, @Valid @RequestBody TeamRequestDTO dto) {
+    public ResponseEntity<?> updateTeam(@PathVariable Long id, @Valid @RequestBody TeamRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     @PostMapping("/{teamId}/players/{playerId}")
-    public ResponseEntity<TeamResponseDTO> addPlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
-        TeamResponseDTO response = teamService.addPlayer(teamId, playerId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> addPlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     @DeleteMapping("/{teamId}/players/{playerId}")
-    public ResponseEntity<TeamResponseDTO> removePlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
-        TeamResponseDTO response = teamService.removePlayer(teamId, playerId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> removePlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
-
-    @GetMapping("/{id}/solicitudes")
-    public ResponseEntity<List<Long>> getPendingResquest(
-            @PathVariable Long userId,
-            @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
-        List<Long> response = teamService.getPendingRequest(teamId, userId);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{id}/solicitudes/{solicitudId}/reject")
-    public ResponseEntity<Void> rejectRequest(
-            @PathVariable Long userId,
-            @PathVariable Long playerId,
-            @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
-        
-        teamService.rejectRequest(teamId, playerId, userId, authHeader);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{id}/solicitudes/{solicitudId}/accept")
-    public ResponseEntity<Void> acceptRequest(
-            @PathVariable Long userId,
-            @PathVariable Long playerId,
-            @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
-        
-        teamService.acceptRequest(teamId, playerId, userId, authHeader);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{id}/solicitudes")
-    public ResponseEntity<Void> sendRequest(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long jugadorId) {
-        
-        teamService.sendRequest(id, jugadorId);
-        return ResponseEntity.noContent().build();
-    }
-
 }

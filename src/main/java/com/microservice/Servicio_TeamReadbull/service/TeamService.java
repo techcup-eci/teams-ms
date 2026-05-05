@@ -15,6 +15,7 @@ import com.microservice.Servicio_TeamReadbull.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.hibernate.usertype.UserType;
 import org.springframework.stereotype.Service;
 
 @Slf4j //libreria para logs
@@ -68,6 +69,13 @@ public class TeamService {
         Team team = teamRepository.findById(id)
             .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
         return teamMapper.toDto(team);
+    }
+
+    public List<TeamResponseDTO> getAllteams() {
+        List<Team> teams = teamRepository.findAll();
+        return teams.stream()
+                .map(teamMapper::toDto)
+                .toList();
     }
 
     public TeamResponseDTO addPlayer(Long teamId, Long playerId) {

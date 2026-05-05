@@ -9,26 +9,21 @@ import com.microservice.Servicio_TeamReadbull.model.Notification.Observer;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "teams")
 public class Team implements ObservableSubject, Observer {
+
+    public enum TournamentStatus {
+        NONE, DRAFT, ACTIVE, IN_PROGRESS, FINISHED
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,14 +32,15 @@ public class Team implements ObservableSubject, Observer {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @Transient
-    private List<Observer> subscribers = new ArrayList<>();
-
     @Column(nullable = true)
-    private Long idTournament; 
+    private Long idTournament;
 
     @Column(nullable = false)
-    private Long idCaptain; 
+    private Long idCaptain;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TournamentStatus tournamentStatus = TournamentStatus.NONE;
 
     @ElementCollection
     private List<Long> players = new ArrayList<>();
@@ -52,48 +48,89 @@ public class Team implements ObservableSubject, Observer {
     @Column(nullable = false)
     private int currentPlayers;
 
-    @Transient
-    private int maxPlayers = 12;
-
-    @Transient
-    private int minPlayers = 7;
-
-    @Transient
-    private boolean isValidTeam = false;
-
     @ElementCollection
     private List<Long> requests = new ArrayList<>();
 
+    @Transient
+    private List<Observer> subscribers = new ArrayList<>();
 
+    @Transient
+    private final int maxPlayers = 12;
 
+    @Transient
+    private final int minPlayers = 7;
 
-    @Override
-    public void subscribe(Observer observer) {
-        subscribers.add(observer);
-    }
+    // Constructores
+    public Team() {}
 
-    @Override
-    public void unsubscribe(Observer observer) {
-        subscribers.remove(observer);
-    }
-
-    @Override
-    public void notifyObservers() {
-        subscribers.forEach(Observer::update);
-    }
-
-    @Override
-    public void update() {
-        notifyObservers();
-    }
-
+    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public List<Observer> getSubscribers() { return subscribers; }
+    public Long getIdTournament() { return idTournament; }
+    public void setIdTournament(Long idTournament) { this.idTournament = idTournament; }
+
+    public Long getIdCaptain() { return idCaptain; }
+    public void setIdCaptain(Long idCaptain) { this.idCaptain = idCaptain; }
+
+    public TournamentStatus getTournamentStatus() { return tournamentStatus; }
+    public void setTournamentStatus(TournamentStatus tournamentStatus) { this.tournamentStatus = tournamentStatus; }
+
+    public List<Long> getPlayers() { return players; }
+    public void setPlayers(List<Long> players) { this.players = players; }
+
+    public int getCurrentPlayers() { return currentPlayers; }
+    public void setCurrentPlayers(int currentPlayers) { this.currentPlayers = currentPlayers; }
+
+    public List<Long> getRequests() { return requests; }
+    public void setRequests(List<Long> requests) { this.requests = requests; }
+
+    public int getMaxPlayers() { return maxPlayers; }
+    public int getMinPlayers() { return minPlayers; }
+
+    // Observer pattern
+    @Override
+    public void subscribe(Observer observer) { subscribers.add(observer); }
+
+    @Override
+    public void unsubscribe(Observer observer) { subscribers.remove(observer); }
+
+    @Override
+    public void notifyObservers() { subscribers.forEach(Observer::update); }
+
+    @Override
+    public void update() { notifyObservers(); }
+
+    // Lógica de negocio
+    public boolean isInActiveTournament() {
+        return tournamentStatus == TournamentStatus.ACTIVE
+                || tournamentStatus == TournamentStatus.IN_PROGRESS;
+    }
+
+    public void addPlayer(Long playerId) {
+        if (currentPlayers >= maxPlayers) {
+            throw new IllegalStateException("El equipo está lleno, máximo " + maxPlayers + " jugadores.");
+        }
+        players.add(playerId);
+        currentPlayers++;
+    }
+
+    public void removePlayer(Long playerId) {
+        if (playerId.equals(idCaptain)) {
+            throw new IllegalStateException("No se puede eliminar al capitán del equipo.");
+        }
+        if (!players.remove(playerId)) {
+            throw new IllegalStateException("Jugador no encontrado en el equipo.");
+        }
+        currentPlayers--;
+    }
+
+    public boolean hasValidNumberOfPlayers() {
+        return currentPlayers >= minPlayers && currentPlayers <= maxPlayers;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -106,54 +143,5 @@ public class Team implements ObservableSubject, Observer {
     @Override
     public int hashCode() {
         return id != null ? id.hashCode() : 0;
-    }
-
-
-    public boolean hasValidNumberOfPlayers() {
-        if(currentPlayers<= maxPlayers && currentPlayers >= minPlayers) {
-            return true;
-        }
-        return false;
-    }
-
-    public void addPlayer(Long playerId) {
-        if (currentPlayers < maxPlayers) {
-            players.add(playerId);
-            currentPlayers++;
-        } else {
-            throw new IllegalStateException("No es posible agregar más jugadores, el equipo está lleno.");
-        }
-    }
-
-    public void removePlayer(Long playerId) {
-        if (players.remove(playerId) && playerId != idCaptain) {
-            currentPlayers--;
-        } else if (playerId == idCaptain) {
-            throw new IllegalStateException("No es posible eliminar al capitán del equipo.");
-        } else {
-            throw new IllegalStateException("Jugador no encontrado en el equipo.");
-        }
-    }
-
-    
-
-    public boolean playersWithDiferentDorsal() {
-        return true;
-    }
-
-    public boolean halfOfStudentsAreOfAllowedPrograms() {
-        return true;
-    }
-
-    public void validateTeam() {
-        if (!this.hasValidNumberOfPlayers() 
-            || !this.playersWithDiferentDorsal() 
-            || !this.halfOfStudentsAreOfAllowedPrograms()) {
-                
-            this.isValidTeam = false;
-        } else {
-            this.isValidTeam = true;
-        }
-
     }
 }

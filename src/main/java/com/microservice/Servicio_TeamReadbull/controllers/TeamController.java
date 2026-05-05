@@ -57,30 +57,34 @@ public class TeamController {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
+
     @PostMapping("/{teamId}/players/{playerId}")
     public ResponseEntity<TeamResponseDTO> addPlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
         TeamResponseDTO response = teamService.addPlayer(teamId, playerId);
         return ResponseEntity.ok(response);
     }
 
+    //eliminar jugador del equipo
     @DeleteMapping("/{teamId}/players/{playerId}")
     public ResponseEntity<TeamResponseDTO> removePlayer(@PathVariable Long teamId, @PathVariable Long playerId) {
         TeamResponseDTO response = teamService.removePlayer(teamId, playerId);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}/solicitudes")
-    public ResponseEntity<List<Long>> getPendingResquest(
-            @PathVariable Long userId,
+    //obtener solicitudes pendientes del equipo
+    @GetMapping("/{teamId}/solicitudes")
+    public ResponseEntity<List<Long>> getPendingRequest(
             @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("X-User-Id") Long userId) {
+        
         List<Long> response = teamService.getPendingRequest(teamId, userId);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/solicitudes/{solicitudId}/reject")
+    //rechazar solicitud 
+    @PostMapping("/{teamId}/solicitudes/{playerId}/reject")
     public ResponseEntity<Void> rejectRequest(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
             @PathVariable Long teamId,
             @RequestHeader("Authorization") String authHeader) {
@@ -89,9 +93,10 @@ public class TeamController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/solicitudes/{solicitudId}/accept")
+    //aceptar solicitud
+    @PostMapping("/{teamId}/solicitudes/{playerId}/accept")
     public ResponseEntity<Void> acceptRequest(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
             @PathVariable Long teamId,
             @RequestHeader("Authorization") String authHeader) {
@@ -100,6 +105,7 @@ public class TeamController {
         return ResponseEntity.noContent().build();
     }
 
+    //enviar solicitud al equipo
     @PostMapping("/{id}/solicitudes")
     public ResponseEntity<Void> sendRequest(
             @PathVariable Long id,

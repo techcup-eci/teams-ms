@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Response.SolicitudResponseDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.exception.UnauthorizedException;
@@ -31,10 +30,17 @@ public class TeamService {
 
     public TeamResponseDTO createTeam(TeamRequestDTO dto) {
         Team team = new Team();
+
+        ArrayList<Long> initialPlayer = new ArrayList<>();
+        initialPlayer.add(dto.getCaptainId());
+
         team.setName(dto.getName());
         team.setIdTournament(dto.getIdTournament());
         team.setIdCaptain(dto.getIdCaptain());
-        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
+        team.setColors(dto.getColors());
+        team.setIdCaptain(dto.getCaptainId());
+        team.setPhoto(dto.getPhoto());
+        team.setPlayers(initialPlayer);
         team.setCurrentPlayers(team.getPlayers().size());
 
         Team saved = teamRepository.save(team);
@@ -58,7 +64,8 @@ public class TeamService {
         team.setName(dto.getName());
         team.setIdTournament(dto.getIdTournament());
         team.setIdCaptain(dto.getIdCaptain());
-        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
+        team.setColors(dto.getColors());
+        team.setPhoto(dto.getPhoto());
         team.setCurrentPlayers(team.getPlayers().size());
         Team updated = teamRepository.save(team);
         log.info("Equipo actualizado con ID: {} y nombre: {}", id, updated.getName());

@@ -73,6 +73,16 @@ public class Team implements ObservableSubject, Observer {
     @ElementCollection
     private List<Long> requests = new ArrayList<>();
 
+    @Column(nullable = false)
+    private String colors;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String state = "DRAFT"; 
+
+    @Column(nullable = false)
+    private String photo; 
+
 
 
 

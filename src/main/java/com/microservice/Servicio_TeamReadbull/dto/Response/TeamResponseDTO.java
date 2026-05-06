@@ -24,4 +24,12 @@ public class TeamResponseDTO {
     private int maxPlayers;
 
     private int minPlayers;
+
+    private String colors;
+
+    private Long captainId;
+
+    private String photo;
+
+    private List<Long> players;
 }

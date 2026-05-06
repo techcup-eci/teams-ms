@@ -44,6 +44,13 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping
+    public ResponseEntity<List<TeamResponseDTO>> getAllTeams() {
+        List<TeamResponseDTO> teams = teamService.getAllteams();
+        return ResponseEntity.ok(teams);
+    }
+
+    // HU-02
     @PutMapping("/{id}/name")
     public ResponseEntity<TeamResponseDTO> updateTeamName(
             @PathVariable Long id,
@@ -92,19 +99,21 @@ public class TeamController {
 
     @PostMapping("/{teamId}/solicitudes/{playerId}/reject")
     public ResponseEntity<Void> rejectRequest(
-            @PathVariable Long teamId,
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
-            @RequestHeader("X-User-Id") Long userId) {
-        teamService.rejectRequest(teamId, playerId, userId, null);
+            @PathVariable Long teamId,
+            @RequestHeader("Authorization") String authHeader) {
+        teamService.rejectRequest(teamId, playerId, userId, authHeader);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{teamId}/solicitudes/{playerId}/accept")
     public ResponseEntity<Void> acceptRequest(
-            @PathVariable Long teamId,
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
-            @RequestHeader("X-User-Id") Long userId) {
-        teamService.acceptRequest(teamId, playerId, userId, null);
+            @PathVariable Long teamId,
+            @RequestHeader("Authorization") String authHeader) {
+        teamService.acceptRequest(teamId, playerId, userId, authHeader);
         return ResponseEntity.noContent().build();
     }
 

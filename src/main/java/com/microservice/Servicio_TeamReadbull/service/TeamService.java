@@ -11,29 +11,31 @@ import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
 import com.microservice.Servicio_TeamReadbull.model.Team;
 import com.microservice.Servicio_TeamReadbull.repository.TeamRepository;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
+@Slf4j
+@RequiredArgsConstructor
 @Service
 public class TeamService {
-
-    private static final Logger log = LoggerFactory.getLogger(TeamService.class);
 
     private final TeamRepository teamRepository;
     private final TeamMapper teamMapper;
 
-    public TeamService(TeamRepository teamRepository, TeamMapper teamMapper) {
-        this.teamRepository = teamRepository;
-        this.teamMapper = teamMapper;
-    }
-
     public TeamResponseDTO createTeam(TeamRequestDTO dto) {
         Team team = new Team();
+
+        ArrayList<Long> initialPlayer = new ArrayList<>();
+        initialPlayer.add(dto.getCaptainId());
+
         team.setName(dto.getName());
         team.setIdTournament(dto.getIdTournament());
-        team.setIdCaptain(dto.getIdCaptain());
-        team.setPlayers(dto.getIdPlayers() != null ? dto.getIdPlayers() : new ArrayList<>());
+        team.setIdCaptain(dto.getCaptainId());
+        team.setColors(dto.getColors());
+        team.setPhoto(dto.getPhoto());
+        team.setPlayers(initialPlayer);
         team.setCurrentPlayers(team.getPlayers().size());
         team.setTournamentStatus(Team.TournamentStatus.NONE);
 
@@ -46,6 +48,13 @@ public class TeamService {
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
         return teamMapper.toDto(team);
+    }
+
+    public List<TeamResponseDTO> getAllteams() {
+        List<Team> teams = teamRepository.findAll();
+        return teams.stream()
+                .map(teamMapper::toDto)
+                .toList();
     }
 
     public TeamResponseDTO updateTeamName(Long id, String newName) {
@@ -61,6 +70,15 @@ public class TeamService {
         Team updated = teamRepository.save(team);
         log.info("Nombre del equipo ID {} actualizado a: {}", id, updated.getName());
         return teamMapper.toDto(updated);
+    }
+
+    public TeamResponseDTO updateTournamentStatus(Long teamId, Team.TournamentStatus status) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+        team.setTournamentStatus(status);
+        Team saved = teamRepository.save(team);
+        log.info("Estado del torneo del equipo ID {} actualizado a: {}", teamId, status);
+        return teamMapper.toDto(saved);
     }
 
     public void deleteTeam(Long id) {
@@ -156,14 +174,5 @@ public class TeamService {
         team.getRequests().add(jugadorId);
         teamRepository.save(team);
         log.info("Jugador ID {} envió solicitud al equipo ID {}", jugadorId, teamId);
-    }
-
-    public TeamResponseDTO updateTournamentStatus(Long teamId, Team.TournamentStatus status) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-        team.setTournamentStatus(status);
-        Team saved = teamRepository.save(team);
-        log.info("Estado del torneo del equipo ID {} actualizado a: {}", teamId, status);
-        return teamMapper.toDto(saved);
     }
 }

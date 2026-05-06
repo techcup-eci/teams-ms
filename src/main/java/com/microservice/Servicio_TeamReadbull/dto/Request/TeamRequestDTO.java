@@ -24,4 +24,12 @@ public class TeamRequestDTO {
     private List<Long> idPlayers;
 
     private int currentPlayers;
+
+    private String colors;
+
+    private Long captainId;
+
+    private String photo;
+
+    private List<Long> players;
 }

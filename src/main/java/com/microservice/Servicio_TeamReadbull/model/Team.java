@@ -41,6 +41,7 @@ public class Team implements ObservableSubject, Observer {
     private String name;
 
     @Transient
+    @Builder.Default
     private List<Observer> subscribers = new ArrayList<>();
 
     @Column(nullable = true)
@@ -50,6 +51,7 @@ public class Team implements ObservableSubject, Observer {
     private Long idCaptain; 
 
     @ElementCollection
+    @Builder.Default
     private List<Long> players = new ArrayList<>();
 
     @Column(nullable = false)
@@ -62,12 +64,15 @@ public class Team implements ObservableSubject, Observer {
     private boolean isRegistered = false;
 
     @Transient
+    @Builder.Default
     private int maxPlayers = 12;
 
     @Transient
+    @Builder.Default
     private int minPlayers = 7;
 
     @Transient
+    @Builder.Default
     private boolean isValidTeam = false;
 
     @ElementCollection

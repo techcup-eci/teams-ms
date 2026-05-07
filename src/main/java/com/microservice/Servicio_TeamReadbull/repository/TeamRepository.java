@@ -17,6 +17,6 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     List<Team> findAll();
 
-    @Query("SELECT COUNT(t) > 0 FROM Team t JOIN t.playerIds p WHERE p = :jugadorId")
+    @Query("SELECT COUNT(t) > 0 FROM Team t JOIN t.players p WHERE p = :jugadorId")
     boolean existsPlayerInAnyTeam(@Param("jugadorId") Long jugadorId);
 }

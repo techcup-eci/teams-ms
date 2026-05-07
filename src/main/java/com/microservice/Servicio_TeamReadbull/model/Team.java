@@ -51,7 +51,8 @@ public class Team implements ObservableSubject, Observer {
     private List<Long> players = new ArrayList<>();
 
     @Column(nullable = false)
-    private int currentPlayers;
+    @Builder.Default
+    private int currentPlayers = 0;
 
     @Column(nullable = false, unique = true, updatable = false)
     private String code;

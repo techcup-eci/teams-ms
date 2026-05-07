@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @RequiredArgsConstructor
+@Builder
 @Service
 public class TeamService {
 

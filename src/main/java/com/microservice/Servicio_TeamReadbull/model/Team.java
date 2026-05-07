@@ -33,6 +33,7 @@ public class Team implements ObservableSubject, Observer {
     private String name;
 
     @Transient
+    @Builder.Default
     private List<Observer> subscribers = new ArrayList<>();
 
     @Column(nullable = true)
@@ -46,10 +47,12 @@ public class Team implements ObservableSubject, Observer {
     private TournamentStatus tournamentStatus = TournamentStatus.NONE;
 
     @ElementCollection
+    @Builder.Default
     private List<Long> players = new ArrayList<>();
 
     @Column(nullable = false)
-    private int currentPlayers;
+    @Builder.Default
+    private int currentPlayers = 0;
 
     @Column(nullable = false, unique = true, updatable = false)
     private String code;
@@ -68,12 +71,15 @@ public class Team implements ObservableSubject, Observer {
     private String photo;
 
     @Transient
+    @Builder.Default
     private int maxPlayers = 12;
 
     @Transient
+    @Builder.Default
     private int minPlayers = 7;
 
     @Transient
+    @Builder.Default
     private boolean isValidTeam = false;
 
     @ElementCollection

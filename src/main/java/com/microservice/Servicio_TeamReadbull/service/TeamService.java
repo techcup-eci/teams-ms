@@ -11,6 +11,7 @@ import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
 import com.microservice.Servicio_TeamReadbull.model.Team;
 import com.microservice.Servicio_TeamReadbull.repository.TeamRepository;
 
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @RequiredArgsConstructor
+@Builder
 @Service
 public class TeamService {
 
@@ -57,18 +59,22 @@ public class TeamService {
                 .toList();
     }
 
-    public TeamResponseDTO updateTeamName(Long id, String newName) {
+     public TeamResponseDTO updateTeam(Long id, TeamRequestDTO dto){
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
 
         if (team.isInActiveTournament()) {
             throw new IllegalStateException(
-                    "No se puede actualizar el nombre del equipo mientras esté en un torneo Activo o En Progreso.");
-        }
-
-        team.setName(newName);
+            "No se puede actualizar el nombre del equipo mientras esté en un torneo Activo o En Progreso.");
+            }
+        team.setName(dto.getName());
+        team.setIdTournament(dto.getIdTournament());
+        team.setIdCaptain(dto.getIdCaptain());
+        team.setColors(dto.getColors());
+        team.setPhoto(dto.getPhoto());
+        team.setCurrentPlayers(team.getPlayers().size());
         Team updated = teamRepository.save(team);
-        log.info("Nombre del equipo ID {} actualizado a: {}", id, updated.getName());
+        log.info("Equipo actualizado con ID: {} y nombre: {}", id, updated.getName());
         return teamMapper.toDto(updated);
     }
 
@@ -151,7 +157,7 @@ public class TeamService {
         log.info("Solicitud del jugador ID {} aceptada en equipo ID {}", playerId, teamId);
     }
 
-    public void sendRequest(Long teamId, Long jugadorId) {
+    public void sendRequest(Long teamId, Long playerId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
@@ -159,20 +165,37 @@ public class TeamService {
             throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores.");
         }
 
-        if (team.getPlayers().contains(jugadorId)) {
+        if (team.getPlayers().contains(playerId)) {
             throw new IllegalStateException("El jugador ya pertenece a este equipo.");
         }
 
-        if (teamRepository.existsPlayerInAnyTeam(jugadorId)) {
+        if (teamRepository.existsPlayerInAnyTeam(playerId)) {
             throw new IllegalStateException("El jugador ya pertenece a otro equipo.");
         }
 
-        if (team.getRequests().contains(jugadorId)) {
+        if (team.getRequests().contains(playerId)) {
             throw new IllegalStateException("El jugador ya tiene una solicitud pendiente en este equipo.");
         }
 
-        team.getRequests().add(jugadorId);
+        team.getRequests().add(playerId);
         teamRepository.save(team);
-        log.info("Jugador ID {} envió solicitud al equipo ID {}", jugadorId, teamId);
+        log.info("Jugador ID {} envió solicitud al equipo ID {}", playerId, teamId);
+    }
+
+    public void sendRequesBycode(String code, Long playerId) {
+        Team team = teamRepository.findByCode(code)
+                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", "code: " + code));
+
+        if (team.getPlayers().size() >= team.getMaxPlayers()) {
+            throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores.");
+        }
+
+        if (team.getRequests().contains(playerId)) {
+            throw new IllegalStateException("El jugador ya tiene una solicitud pendiente en este equipo.");
+        }
+
+        team.getRequests().add(playerId);
+        teamRepository.save(team);
+        log.info("Jugador ID {} envió solicitud al equipo ID {} por código", playerId, team.getId());
     }
 }

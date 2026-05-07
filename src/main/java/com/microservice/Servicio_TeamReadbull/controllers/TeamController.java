@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Request.UpdateNameRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.model.Team;
 import com.microservice.Servicio_TeamReadbull.service.TeamService;
@@ -50,13 +50,10 @@ public class TeamController {
         return ResponseEntity.ok(teams);
     }
 
-    // HU-02
-    @PutMapping("/{id}/name")
-    public ResponseEntity<TeamResponseDTO> updateTeamName(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateNameRequestDTO dto) {
-        TeamResponseDTO response = teamService.updateTeamName(id, dto.getName());
-        return ResponseEntity.ok(response);
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<TeamResponseDTO> updateTeam(@PathVariable Long id, @Valid @RequestBody TeamRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     @PutMapping("/{id}/tournament-status")
@@ -81,6 +78,7 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
+    //eliminar jugador del equipo
     @DeleteMapping("/{teamId}/players/{playerId}")
     public ResponseEntity<TeamResponseDTO> removePlayer(
             @PathVariable Long teamId,
@@ -89,6 +87,7 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
+    //obtener solicitudes pendientes del equipo
     @GetMapping("/{teamId}/solicitudes")
     public ResponseEntity<List<Long>> getPendingRequest(
             @PathVariable Long teamId,
@@ -97,31 +96,43 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
+    //rechazar solicitud 
     @PostMapping("/{teamId}/solicitudes/{playerId}/reject")
     public ResponseEntity<Void> rejectRequest(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
             @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         teamService.rejectRequest(teamId, playerId, userId, authHeader);
         return ResponseEntity.noContent().build();
     }
 
+    //aceptar solicitud
     @PostMapping("/{teamId}/solicitudes/{playerId}/accept")
     public ResponseEntity<Void> acceptRequest(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
             @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         teamService.acceptRequest(teamId, playerId, userId, authHeader);
         return ResponseEntity.noContent().build();
     }
 
+    //enviar solicitud al equipo
     @PostMapping("/{teamId}/solicitudes")
     public ResponseEntity<Void> sendRequest(
             @PathVariable Long teamId,
             @RequestHeader("X-User-Id") Long jugadorId) {
         teamService.sendRequest(teamId, jugadorId);
+        return ResponseEntity.noContent().build();
+    }
+
+    //solicitar unirse al equipo por medio de codigo
+    @PostMapping("/join")
+    public ResponseEntity<Void> sendRequesBycode(
+            @RequestParam String code,
+            @RequestHeader("X-User-Id") Long playerId) {
+        teamService.sendRequesBycode(code, playerId);
         return ResponseEntity.noContent().build();
     }
 }

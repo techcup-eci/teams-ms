@@ -21,7 +21,7 @@ public class TeamResponseDTO {
     private Long captainId;
     private List<Long> idPlayers;
     private List<Long> players;
-    private int currentPlayers;
+    private Integer currentPlayers;
     private int maxPlayers;
     private int minPlayers;
     private String colors;

@@ -23,7 +23,7 @@ public class TeamRequestDTO {
 
     private List<Long> idPlayers;
 
-    private int currentPlayers;
+    private Integer currentPlayers;
 
     private String colors;
 

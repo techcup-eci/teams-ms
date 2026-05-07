@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
@@ -101,7 +102,7 @@ public class TeamController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
             @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         teamService.rejectRequest(teamId, playerId, userId, authHeader);
         return ResponseEntity.noContent().build();
     }
@@ -112,7 +113,7 @@ public class TeamController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long playerId,
             @PathVariable Long teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         teamService.acceptRequest(teamId, playerId, userId, authHeader);
         return ResponseEntity.noContent().build();
     }
@@ -123,6 +124,15 @@ public class TeamController {
             @PathVariable Long teamId,
             @RequestHeader("X-User-Id") Long jugadorId) {
         teamService.sendRequest(teamId, jugadorId);
+        return ResponseEntity.noContent().build();
+    }
+
+    //solicitar unirse al equipo por medio de codigo
+    @PostMapping("/join")
+    public ResponseEntity<Void> sendRequesBycode(
+            @RequestParam String code,
+            @RequestHeader("X-User-Id") Long playerId) {
+        teamService.sendRequesBycode(code, playerId);
         return ResponseEntity.noContent().build();
     }
 }

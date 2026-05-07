@@ -157,7 +157,7 @@ public class TeamService {
         log.info("Solicitud del jugador ID {} aceptada en equipo ID {}", playerId, teamId);
     }
 
-    public void sendRequest(Long teamId, Long jugadorId) {
+    public void sendRequest(Long teamId, Long playerId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
@@ -165,20 +165,37 @@ public class TeamService {
             throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores.");
         }
 
-        if (team.getPlayers().contains(jugadorId)) {
+        if (team.getPlayers().contains(playerId)) {
             throw new IllegalStateException("El jugador ya pertenece a este equipo.");
         }
 
-        if (teamRepository.existsPlayerInAnyTeam(jugadorId)) {
+        if (teamRepository.existsPlayerInAnyTeam(playerId)) {
             throw new IllegalStateException("El jugador ya pertenece a otro equipo.");
         }
 
-        if (team.getRequests().contains(jugadorId)) {
+        if (team.getRequests().contains(playerId)) {
             throw new IllegalStateException("El jugador ya tiene una solicitud pendiente en este equipo.");
         }
 
-        team.getRequests().add(jugadorId);
+        team.getRequests().add(playerId);
         teamRepository.save(team);
-        log.info("Jugador ID {} envió solicitud al equipo ID {}", jugadorId, teamId);
+        log.info("Jugador ID {} envió solicitud al equipo ID {}", playerId, teamId);
+    }
+
+    public void sendRequesBycode(String code, Long playerId) {
+        Team team = teamRepository.findByCode(code)
+                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", "code: " + code));
+
+        if (team.getPlayers().size() >= team.getMaxPlayers()) {
+            throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores.");
+        }
+
+        if (team.getRequests().contains(playerId)) {
+            throw new IllegalStateException("El jugador ya tiene una solicitud pendiente en este equipo.");
+        }
+
+        team.getRequests().add(playerId);
+        teamRepository.save(team);
+        log.info("Jugador ID {} envió solicitud al equipo ID {} por código", playerId, team.getId());
     }
 }

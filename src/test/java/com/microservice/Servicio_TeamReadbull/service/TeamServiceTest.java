@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.Optional;
 
+import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
@@ -31,6 +32,7 @@ public class TeamServiceTest {
     private TeamService teamService;
 
     private Team team;
+    private TeamRequestDTO dto;
 
     @BeforeEach
     void setUp() {
@@ -39,6 +41,15 @@ public class TeamServiceTest {
         team.setName("Redbull FC");
         team.setIdCaptain(10L);
         team.setTournamentStatus(Team.TournamentStatus.NONE);
+
+        // DTO base reutilizable en todos los tests
+        dto = TeamRequestDTO.builder()
+                .name("Nuevo Nombre")
+                .idTournament(1L)
+                .idCaptain(10L)
+                .colors("Rojo")
+                .photo("foto.png")
+                .build();
     }
 
     // HU-02: Actualizar nombre exitosamente cuando no hay torneo activo
@@ -50,7 +61,7 @@ public class TeamServiceTest {
         when(teamRepository.save(any(Team.class))).thenReturn(team);
         when(teamMapper.toDto(team)).thenReturn(new TeamResponseDTO());
 
-        TeamResponseDTO result = teamService.updateTeamName(1L, "Nuevo Nombre");
+        TeamResponseDTO result = teamService.updateTeam(1L, dto);
 
         assertNotNull(result);
         assertEquals("Nuevo Nombre", team.getName());
@@ -65,7 +76,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            teamService.updateTeamName(1L, "Nuevo Nombre");
+            teamService.updateTeam(1L, dto);
         });
 
         assertTrue(ex.getMessage().contains("Activo o En Progreso"));
@@ -80,7 +91,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            teamService.updateTeamName(1L, "Nuevo Nombre");
+            teamService.updateTeam(1L, dto);
         });
 
         assertTrue(ex.getMessage().contains("Activo o En Progreso"));
@@ -93,7 +104,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeamName(99L, "Nuevo Nombre");
+            teamService.updateTeam(99L, dto);
         });
     }
 
@@ -106,7 +117,7 @@ public class TeamServiceTest {
         when(teamRepository.save(any(Team.class))).thenReturn(team);
         when(teamMapper.toDto(team)).thenReturn(new TeamResponseDTO());
 
-        TeamResponseDTO result = teamService.updateTeamName(1L, "Nuevo Nombre");
+        TeamResponseDTO result = teamService.updateTeam(1L, dto);
 
         assertNotNull(result);
         verify(teamRepository).save(team);

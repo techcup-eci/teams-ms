@@ -2,6 +2,9 @@ package com.microservice.Servicio_TeamReadbull.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamMapper teamMapper;
+    private final WebClient webClient;    
 
     public TeamResponseDTO createTeam(TeamRequestDTO dto) {
         Team team = new Team();
@@ -143,19 +148,31 @@ public class TeamService {
         log.info("Solicitud del jugador ID {} rechazada en equipo ID {}", playerId, teamId);
     }
 
-    public void acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+    public TeamResponseDTO acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
+    Team team = teamRepository.findById(teamId) .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        if (userId == null || !team.getIdCaptain().equals(userId)) {
-            throw UnauthorizedException.notCaptain(teamId);
-        }
-
-        team.addPlayer(playerId);
-        team.getRequests().remove(playerId);
-        teamRepository.save(team);
-        log.info("Solicitud del jugador ID {} aceptada en equipo ID {}", playerId, teamId);
+    if (userId == null || !team.getIdCaptain().equals(userId)) {
+        throw UnauthorizedException.notCaptain(teamId);
     }
+
+    team.addPlayer(playerId);
+    team.getRequests().remove(playerId);
+    Team saved = teamRepository.save(team);
+
+    List<Long> playerIds = new ArrayList<>(saved.getPlayers());
+    
+    TeamResponseDTO response = teamMapper.toDto(saved);
+
+    if (!validateJerseys(playerIds, authHeader)) {
+        response.setWarning("Hay jugadores con el mismo dorsal, revisen sus números.");
+    }
+
+    if (!validatePrograms(playerIds, authHeader)) {
+        response.setWarning("El equipo no cumple con la mitad de jugadores de programas permitidos.");
+    }
+
+    return response;
+}
 
     public void sendRequest(Long teamId, Long playerId) {
         Team team = teamRepository.findById(teamId)
@@ -197,5 +214,41 @@ public class TeamService {
         team.getRequests().add(playerId);
         teamRepository.save(team);
         log.info("Jugador ID {} envió solicitud al equipo ID {} por código", playerId, team.getId());
+    }
+
+    private boolean validateJerseys(List<Long> playerIds, String authHeader) {
+        try {
+            Map<String, List<Long>> body = Map.of("playerIds", playerIds);
+            return Boolean.TRUE.equals(
+                webClient.post()
+                    .uri("/api/users/validate-jerseys")
+                    .header("Authorization", authHeader)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(Boolean.class)
+                    .block()
+            );
+        } catch (Exception e) {
+            log.warn("No se pudo validar dorsales: {}", e.getMessage());
+            return true; 
+        }
+    }
+
+    private boolean validatePrograms(List<Long> playerIds, String authHeader) {
+        try {
+            Map<String, List<Long>> body = Map.of("playerIds", playerIds);
+            return Boolean.TRUE.equals(
+                webClient.post()
+                    .uri("/api/users/validate-programs")
+                    .header("Authorization", authHeader)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(Boolean.class)
+                    .block()
+            );
+        } catch (Exception e) {
+            log.warn("No se pudo validar programas: {}", e.getMessage());
+            return true; 
+        }
     }
 }

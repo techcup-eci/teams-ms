@@ -27,4 +27,5 @@ public class TeamResponseDTO {
     private String colors;
     private String photo;
     private Team.TournamentStatus tournamentStatus;
+    private String warning;
 }

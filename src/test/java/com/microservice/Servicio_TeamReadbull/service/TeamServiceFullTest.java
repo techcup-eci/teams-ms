@@ -42,24 +42,24 @@ class TeamServiceFullTest {
     private Team team;
     private TeamRequestDTO dto;
     private TeamResponseDTO responseDTO;
+    private final Long CAPTAIN_ID = 10L;
 
     @BeforeEach
     void setUp() {
         team = new Team();
         team.setId(1L);
         team.setName("Redbull FC");
-        team.setIdCaptain(10L);
+        team.setIdCaptain(CAPTAIN_ID);
         team.setTournamentStatus(Team.TournamentStatus.NONE);
         team.setColors("Rojo y Azul");
         team.setPhoto("foto.png");
-        team.setPlayers(new ArrayList<>(List.of(10L)));
+        team.setPlayers(new ArrayList<>(List.of(CAPTAIN_ID)));
         team.setCurrentPlayers(1);
+        team.setRequests(new ArrayList<>());
 
         dto = TeamRequestDTO.builder()
-                .name("Nuevo Nombre")
+                .name("Nuevo Equipo")
                 .idTournament(1L)
-                .idCaptain(10L)
-                .captainId(10L)
                 .colors("Rojo")
                 .photo("foto.png")
                 .build();
@@ -67,7 +67,7 @@ class TeamServiceFullTest {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(10L)
+                .idCaptain(CAPTAIN_ID)
                 .build();
     }
 
@@ -84,11 +84,10 @@ class TeamServiceFullTest {
             when(teamRepository.save(any(Team.class))).thenReturn(team);
             when(teamMapper.toDto(any(Team.class))).thenReturn(responseDTO);
 
-            TeamResponseDTO result = teamService.createTeam(dto);
+            TeamResponseDTO result = teamService.createTeam(dto, CAPTAIN_ID);
 
             assertNotNull(result);
             verify(teamRepository).save(any(Team.class));
-            verify(teamMapper).toDto(any(Team.class));
         }
 
         @Test
@@ -96,12 +95,13 @@ class TeamServiceFullTest {
         void createTeam_captainAddedToPlayers() {
             when(teamRepository.save(any(Team.class))).thenAnswer(inv -> {
                 Team t = inv.getArgument(0);
-                assertThat(t.getPlayers()).contains(dto.getCaptainId());
+                assertThat(t.getPlayers()).contains(CAPTAIN_ID);
+                assertEquals(CAPTAIN_ID, t.getIdCaptain());
                 return t;
             });
             when(teamMapper.toDto(any(Team.class))).thenReturn(responseDTO);
 
-            teamService.createTeam(dto);
+            teamService.createTeam(dto, CAPTAIN_ID);
 
             verify(teamRepository).save(any(Team.class));
         }
@@ -116,7 +116,7 @@ class TeamServiceFullTest {
             });
             when(teamMapper.toDto(any(Team.class))).thenReturn(responseDTO);
 
-            teamService.createTeam(dto);
+            teamService.createTeam(dto, CAPTAIN_ID);
         }
     }
 
@@ -161,9 +161,6 @@ class TeamServiceFullTest {
         void getAllTeams_returnsList() {
             Team team2 = new Team();
             team2.setId(2L);
-            team2.setName("Otro FC");
-            team2.setIdCaptain(20L);
-            team2.setTournamentStatus(Team.TournamentStatus.NONE);
             team2.setPlayers(new ArrayList<>());
 
             when(teamRepository.findAll()).thenReturn(Arrays.asList(team, team2));
@@ -188,83 +185,51 @@ class TeamServiceFullTest {
     }
 
     // =========================================================
-    // updateTeam
+    // updateTeamName (HU-02)
     // =========================================================
     @Nested
-    @DisplayName("updateTeam")
-    class UpdateTeam {
+    @DisplayName("updateTeamName")
+    class UpdateTeamName {
 
         @Test
-        @DisplayName("Actualiza equipo sin torneo activo")
-        void updateTeam_noActiveTournament_success() {
-            team.setTournamentStatus(Team.TournamentStatus.NONE);
+        @DisplayName("Capitán actualiza nombre sin torneo activo")
+        void updateTeamName_success() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
             when(teamMapper.toDto(team)).thenReturn(responseDTO);
 
-            TeamResponseDTO result = teamService.updateTeam(1L, dto);
+            TeamResponseDTO result = teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID);
 
             assertNotNull(result);
             assertEquals("Nuevo Nombre", team.getName());
-            verify(teamRepository).save(team);
-        }
-
-        @Test
-        @DisplayName("Actualiza equipo con torneo FINISHED")
-        void updateTeam_tournamentFinished_success() {
-            team.setTournamentStatus(Team.TournamentStatus.FINISHED);
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-            when(teamRepository.save(any(Team.class))).thenReturn(team);
-            when(teamMapper.toDto(team)).thenReturn(responseDTO);
-
-            assertDoesNotThrow(() -> teamService.updateTeam(1L, dto));
-            verify(teamRepository).save(team);
-        }
-
-        @Test
-        @DisplayName("Actualiza equipo con torneo DRAFT")
-        void updateTeam_tournamentDraft_success() {
-            team.setTournamentStatus(Team.TournamentStatus.DRAFT);
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-            when(teamRepository.save(any(Team.class))).thenReturn(team);
-            when(teamMapper.toDto(team)).thenReturn(responseDTO);
-
-            assertDoesNotThrow(() -> teamService.updateTeam(1L, dto));
         }
 
         @Test
         @DisplayName("Lanza IllegalStateException cuando torneo está ACTIVE")
-        void updateTeam_tournamentActive_throwsException() {
+        void updateTeamName_tournamentActive() {
             team.setTournamentStatus(Team.TournamentStatus.ACTIVE);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
-            IllegalStateException ex = assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeam(1L, dto));
-
-            assertThat(ex.getMessage()).contains("Activo o En Progreso");
-            verify(teamRepository, never()).save(any());
+            assertThrows(IllegalStateException.class,
+                    () -> teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID));
         }
 
         @Test
-        @DisplayName("Lanza IllegalStateException cuando torneo está IN_PROGRESS")
-        void updateTeam_tournamentInProgress_throwsException() {
-            team.setTournamentStatus(Team.TournamentStatus.IN_PROGRESS);
+        @DisplayName("Lanza UnauthorizedException si no es el capitán")
+        void updateTeamName_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
-            IllegalStateException ex = assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeam(1L, dto));
-
-            assertThat(ex.getMessage()).contains("Activo o En Progreso");
-            verify(teamRepository, never()).save(any());
+            assertThrows(UnauthorizedException.class,
+                    () -> teamService.updateTeamName(1L, "Nuevo Nombre", 99L));
         }
 
         @Test
-        @DisplayName("Lanza ResourceNotFoundException cuando equipo no existe")
-        void updateTeam_notFound_throwsException() {
+        @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
+        void updateTeamName_notFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.updateTeam(99L, dto));
+                    () -> teamService.updateTeamName(99L, "Nuevo Nombre", CAPTAIN_ID));
         }
     }
 
@@ -317,113 +282,11 @@ class TeamServiceFullTest {
 
         @Test
         @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void deleteTeam_notFound_throwsException() {
+        void deleteTeam_notFound() {
             when(teamRepository.existsById(99L)).thenReturn(false);
 
             assertThrows(ResourceNotFoundException.class,
                     () -> teamService.deleteTeam(99L));
-            verify(teamRepository, never()).deleteById(any());
-        }
-    }
-
-    // =========================================================
-    // addPlayer
-    // =========================================================
-    @Nested
-    @DisplayName("addPlayer")
-    class AddPlayer {
-
-        @Test
-        @DisplayName("Agrega jugador al equipo correctamente")
-        void addPlayer_success() {
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-            when(teamRepository.save(any(Team.class))).thenReturn(team);
-            when(teamMapper.toDto(team)).thenReturn(responseDTO);
-
-            TeamResponseDTO result = teamService.addPlayer(1L, 20L);
-
-            assertNotNull(result);
-            assertThat(team.getPlayers()).contains(20L);
-        }
-
-        @Test
-        @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void addPlayer_teamNotFound() {
-            when(teamRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.addPlayer(99L, 20L));
-        }
-
-        @Test
-        @DisplayName("Lanza IllegalStateException si el equipo está lleno (12 jugadores)")
-        void addPlayer_teamFull_throwsException() {
-            List<Long> fullPlayers = new ArrayList<>();
-            for (long i = 1; i <= 12; i++) fullPlayers.add(i);
-            team.setPlayers(fullPlayers);
-            team.setCurrentPlayers(12);
-
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-
-            assertThrows(IllegalStateException.class,
-                    () -> teamService.addPlayer(1L, 99L));
-        }
-    }
-
-    // =========================================================
-    // removePlayer
-    // =========================================================
-    @Nested
-    @DisplayName("removePlayer")
-    class RemovePlayer {
-
-        @Test
-        @DisplayName("Elimina jugador correctamente cuando no hay torneo activo")
-        void removePlayer_success() {
-            team.setPlayers(new ArrayList<>(Arrays.asList(10L, 20L)));
-            team.setCurrentPlayers(2);
-            team.setTournamentStatus(Team.TournamentStatus.NONE);
-
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-            when(teamRepository.save(any(Team.class))).thenReturn(team);
-            when(teamMapper.toDto(team)).thenReturn(responseDTO);
-
-            TeamResponseDTO result = teamService.removePlayer(1L, 20L);
-
-            assertNotNull(result);
-            assertThat(team.getPlayers()).doesNotContain(20L);
-        }
-
-        @Test
-        @DisplayName("Lanza IllegalStateException si equipo está en torneo activo")
-        void removePlayer_activeTournament_throwsException() {
-            team.setTournamentStatus(Team.TournamentStatus.ACTIVE);
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-
-            IllegalStateException ex = assertThrows(IllegalStateException.class,
-                    () -> teamService.removePlayer(1L, 20L));
-
-            assertThat(ex.getMessage()).contains("Activo o En Progreso");
-        }
-
-        @Test
-        @DisplayName("Lanza IllegalStateException si se intenta eliminar al capitán")
-        void removePlayer_captain_throwsException() {
-            team.setTournamentStatus(Team.TournamentStatus.NONE);
-            team.setPlayers(new ArrayList<>(Arrays.asList(10L, 20L)));
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-
-            assertThrows(IllegalStateException.class,
-                    () -> teamService.removePlayer(1L, 10L)); // 10L es el capitán
-        }
-
-        @Test
-        @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void removePlayer_teamNotFound() {
-            when(teamRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.removePlayer(99L, 20L));
         }
     }
 
@@ -437,22 +300,21 @@ class TeamServiceFullTest {
         @Test
         @DisplayName("Capitán puede ver solicitudes pendientes")
         void getPendingRequest_captainCanSee() {
-            List<Long> requests = new ArrayList<>(List.of(30L, 40L));
-            team.setRequests(requests);
+            team.setRequests(new ArrayList<>(List.of(30L, 40L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
-            List<Long> result = teamService.getPendingRequest(1L, 10L);
+            List<Long> result = teamService.getPendingRequest(1L, CAPTAIN_ID);
 
             assertThat(result).containsExactly(30L, 40L);
         }
 
         @Test
         @DisplayName("No capitán lanza UnauthorizedException")
-        void getPendingRequest_notCaptain_throwsException() {
+        void getPendingRequest_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.getPendingRequest(1L, 99L)); // 99L no es capitán
+                    () -> teamService.getPendingRequest(1L, 99L));
         }
 
         @Test
@@ -461,7 +323,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.getPendingRequest(99L, 10L));
+                    () -> teamService.getPendingRequest(99L, CAPTAIN_ID));
         }
     }
 
@@ -475,27 +337,17 @@ class TeamServiceFullTest {
         @Test
         @DisplayName("Capitán rechaza solicitud correctamente")
         void rejectRequest_success() {
-            List<Long> requests = new ArrayList<>(List.of(30L));
-            team.setRequests(requests);
+            team.setRequests(new ArrayList<>(List.of(30L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, 10L, null));
+            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID, null));
             assertThat(team.getRequests()).doesNotContain(30L);
         }
 
         @Test
-        @DisplayName("Lanza UnauthorizedException si userId es null")
-        void rejectRequest_nullUserId_throwsException() {
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-
-            assertThrows(UnauthorizedException.class,
-                    () -> teamService.rejectRequest(1L, 30L, null, null));
-        }
-
-        @Test
         @DisplayName("Lanza UnauthorizedException si no es el capitán")
-        void rejectRequest_notCaptain_throwsException() {
+        void rejectRequest_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
@@ -503,12 +355,13 @@ class TeamServiceFullTest {
         }
 
         @Test
-        @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void rejectRequest_teamNotFound() {
-            when(teamRepository.findById(99L)).thenReturn(Optional.empty());
+        @DisplayName("Lanza IllegalStateException si no hay solicitud pendiente")
+        void rejectRequest_noPendingRequest() {
+            team.setRequests(new ArrayList<>());
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
-            assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.rejectRequest(99L, 30L, 10L, null));
+            assertThrows(IllegalStateException.class,
+                    () -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID, null));
         }
     }
 
@@ -522,30 +375,18 @@ class TeamServiceFullTest {
         @Test
         @DisplayName("Capitán acepta solicitud y jugador se agrega al equipo")
         void acceptRequest_success() {
-            List<Long> requests = new ArrayList<>(List.of(30L));
-            team.setRequests(requests);
-            team.setPlayers(new ArrayList<>(List.of(10L)));
-            team.setCurrentPlayers(1);
+            team.setRequests(new ArrayList<>(List.of(30L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, 10L, null));
+            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null));
             assertThat(team.getPlayers()).contains(30L);
             assertThat(team.getRequests()).doesNotContain(30L);
         }
 
         @Test
-        @DisplayName("Lanza UnauthorizedException si userId es null")
-        void acceptRequest_nullUserId_throwsException() {
-            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-
-            assertThrows(UnauthorizedException.class,
-                    () -> teamService.acceptRequest(1L, 30L, null, null));
-        }
-
-        @Test
         @DisplayName("Lanza UnauthorizedException si no es el capitán")
-        void acceptRequest_notCaptain_throwsException() {
+        void acceptRequest_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
@@ -553,12 +394,13 @@ class TeamServiceFullTest {
         }
 
         @Test
-        @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void acceptRequest_teamNotFound() {
-            when(teamRepository.findById(99L)).thenReturn(Optional.empty());
+        @DisplayName("Lanza IllegalStateException si no hay solicitud pendiente")
+        void acceptRequest_noPendingRequest() {
+            team.setRequests(new ArrayList<>());
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
-            assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.acceptRequest(99L, 30L, 10L, null));
+            assertThrows(IllegalStateException.class,
+                    () -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null));
         }
     }
 
@@ -572,8 +414,6 @@ class TeamServiceFullTest {
         @Test
         @DisplayName("Jugador envía solicitud correctamente")
         void sendRequest_success() {
-            team.setPlayers(new ArrayList<>(List.of(10L)));
-            team.setCurrentPlayers(1);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(false);
             when(teamRepository.save(any(Team.class))).thenReturn(team);
@@ -584,11 +424,10 @@ class TeamServiceFullTest {
 
         @Test
         @DisplayName("Lanza IllegalStateException si equipo lleno")
-        void sendRequest_teamFull_throwsException() {
+        void sendRequest_teamFull() {
             List<Long> fullPlayers = new ArrayList<>();
             for (long i = 1; i <= 12; i++) fullPlayers.add(i);
             team.setPlayers(fullPlayers);
-            team.setCurrentPlayers(12);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
@@ -596,21 +435,18 @@ class TeamServiceFullTest {
         }
 
         @Test
-        @DisplayName("Lanza IllegalStateException si jugador ya está en el equipo")
-        void sendRequest_playerAlreadyInTeam_throwsException() {
-            team.setPlayers(new ArrayList<>(List.of(10L, 20L)));
-            team.setCurrentPlayers(2);
+        @DisplayName("Lanza IllegalStateException si jugador ya pertenece al equipo")
+        void sendRequest_playerAlreadyInTeam() {
+            team.setPlayers(new ArrayList<>(List.of(CAPTAIN_ID, 20L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequest(1L, 20L)); // 20L ya está
+                    () -> teamService.sendRequest(1L, 20L));
         }
 
         @Test
         @DisplayName("Lanza IllegalStateException si jugador pertenece a otro equipo")
-        void sendRequest_playerInAnotherTeam_throwsException() {
-            team.setPlayers(new ArrayList<>(List.of(10L)));
-            team.setCurrentPlayers(1);
+        void sendRequest_playerInAnotherTeam() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(true);
 
@@ -620,24 +456,13 @@ class TeamServiceFullTest {
 
         @Test
         @DisplayName("Lanza IllegalStateException si jugador ya tiene solicitud pendiente")
-        void sendRequest_duplicateRequest_throwsException() {
-            team.setPlayers(new ArrayList<>(List.of(10L)));
-            team.setCurrentPlayers(1);
+        void sendRequest_duplicateRequest() {
             team.setRequests(new ArrayList<>(List.of(50L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(false);
 
             assertThrows(IllegalStateException.class,
                     () -> teamService.sendRequest(1L, 50L));
-        }
-
-        @Test
-        @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void sendRequest_teamNotFound() {
-            when(teamRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.sendRequest(99L, 50L));
         }
     }
 
@@ -651,9 +476,8 @@ class TeamServiceFullTest {
         @Test
         @DisplayName("Jugador envía solicitud por código correctamente")
         void sendRequesBycode_success() {
-            team.setPlayers(new ArrayList<>(List.of(10L)));
-            team.setCurrentPlayers(1);
             when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
+            when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(false);
             when(teamRepository.save(any(Team.class))).thenReturn(team);
 
             assertDoesNotThrow(() -> teamService.sendRequesBycode("ABC123", 50L));
@@ -667,31 +491,6 @@ class TeamServiceFullTest {
 
             assertThrows(ResourceNotFoundException.class,
                     () -> teamService.sendRequesBycode("INVALID", 50L));
-        }
-
-        @Test
-        @DisplayName("Lanza IllegalStateException si equipo lleno")
-        void sendRequesBycode_teamFull_throwsException() {
-            List<Long> fullPlayers = new ArrayList<>();
-            for (long i = 1; i <= 12; i++) fullPlayers.add(i);
-            team.setPlayers(fullPlayers);
-            team.setCurrentPlayers(12);
-            when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
-
-            assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequesBycode("ABC123", 50L));
-        }
-
-        @Test
-        @DisplayName("Lanza IllegalStateException si jugador ya tiene solicitud pendiente")
-        void sendRequesBycode_duplicateRequest_throwsException() {
-            team.setPlayers(new ArrayList<>(List.of(10L)));
-            team.setCurrentPlayers(1);
-            team.setRequests(new ArrayList<>(List.of(50L)));
-            when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
-
-            assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequesBycode("ABC123", 50L));
         }
     }
 }

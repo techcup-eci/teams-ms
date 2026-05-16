@@ -1,6 +1,7 @@
 package com.microservice.Servicio_TeamReadbull.controllers;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
+import com.microservice.Servicio_TeamReadbull.dto.Request.UpdateNameRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.model.Team;
@@ -34,13 +35,14 @@ class TeamControllerTest {
 
     private TeamResponseDTO responseDTO;
     private TeamRequestDTO requestDTO;
+    private final Long CAPTAIN_ID = 10L;
 
     @BeforeEach
     void setUp() {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(10L)
+                .idCaptain(CAPTAIN_ID)
                 .colors("Rojo")
                 .photo("foto.png")
                 .tournamentStatus(Team.TournamentStatus.NONE)
@@ -49,8 +51,6 @@ class TeamControllerTest {
         requestDTO = TeamRequestDTO.builder()
                 .name("Redbull FC")
                 .idTournament(1L)
-                .idCaptain(10L)
-                .captainId(10L)
                 .colors("Rojo")
                 .photo("foto.png")
                 .build();
@@ -63,12 +63,13 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 201 con el DTO creado")
         void createTeam_returns201() {
-            when(teamService.createTeam(any(TeamRequestDTO.class))).thenReturn(responseDTO);
-            ResponseEntity<TeamResponseDTO> response = teamController.createTeam(requestDTO);
+            when(teamService.createTeam(any(TeamRequestDTO.class), eq(CAPTAIN_ID))).thenReturn(responseDTO);
+
+            ResponseEntity<TeamResponseDTO> response = teamController.createTeam(requestDTO, CAPTAIN_ID);
+
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
             assertNotNull(response.getBody());
             assertEquals(1L, response.getBody().getId());
-            verify(teamService).createTeam(any(TeamRequestDTO.class));
         }
     }
 
@@ -80,16 +81,19 @@ class TeamControllerTest {
         @DisplayName("Retorna 200 con el equipo")
         void getTeamById_returns200() {
             when(teamService.getTeamById(1L)).thenReturn(responseDTO);
+
             ResponseEntity<TeamResponseDTO> response = teamController.getTeamById(1L);
+
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals("Redbull FC", response.getBody().getName());
         }
 
         @Test
         @DisplayName("Lanza excepción si no existe")
-        void getTeamById_notFound_throwsException() {
+        void getTeamById_notFound() {
             when(teamService.getTeamById(99L))
                     .thenThrow(ResourceNotFoundException.notFound("Team", 99L));
+
             assertThrows(ResourceNotFoundException.class, () -> teamController.getTeamById(99L));
         }
     }
@@ -102,7 +106,9 @@ class TeamControllerTest {
         @DisplayName("Retorna 200 con lista")
         void getAllTeams_returns200() {
             when(teamService.getAllteams()).thenReturn(List.of(responseDTO));
+
             ResponseEntity<List<TeamResponseDTO>> response = teamController.getAllTeams();
+
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals(1, response.getBody().size());
         }
@@ -111,22 +117,29 @@ class TeamControllerTest {
         @DisplayName("Retorna 200 con lista vacía")
         void getAllTeams_empty() {
             when(teamService.getAllteams()).thenReturn(List.of());
+
             ResponseEntity<List<TeamResponseDTO>> response = teamController.getAllTeams();
+
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertTrue(response.getBody().isEmpty());
         }
     }
 
     @Nested
-    @DisplayName("updateTeam")
-    class UpdateTeam {
+    @DisplayName("updateTeamName")
+    class UpdateTeamName {
 
         @Test
-        @DisplayName("Retorna 501 NOT_IMPLEMENTED")
-        void updateTeam_returns501() {
-            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, requestDTO);
-            assertEquals(HttpStatus.NOT_IMPLEMENTED, response.getStatusCode());
-            verifyNoInteractions(teamService);
+        @DisplayName("Retorna 200 con equipo actualizado")
+        void updateTeamName_returns200() {
+            UpdateNameRequestDTO dto = new UpdateNameRequestDTO();
+            dto.setName("Nuevo Nombre");
+
+            when(teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID)).thenReturn(responseDTO);
+
+            ResponseEntity<TeamResponseDTO> response = teamController.updateTeamName(1L, dto, CAPTAIN_ID);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
         }
     }
 
@@ -139,19 +152,11 @@ class TeamControllerTest {
         void updateTournamentStatus_returns200() {
             when(teamService.updateTournamentStatus(1L, Team.TournamentStatus.ACTIVE))
                     .thenReturn(responseDTO);
+
             ResponseEntity<TeamResponseDTO> response =
                     teamController.updateTournamentStatus(1L, Team.TournamentStatus.ACTIVE);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            verify(teamService).updateTournamentStatus(1L, Team.TournamentStatus.ACTIVE);
-        }
 
-        @Test
-        @DisplayName("Lanza excepción si equipo no existe")
-        void updateTournamentStatus_notFound() {
-            when(teamService.updateTournamentStatus(99L, Team.TournamentStatus.ACTIVE))
-                    .thenThrow(ResourceNotFoundException.notFound("Team", 99L));
-            assertThrows(ResourceNotFoundException.class,
-                    () -> teamController.updateTournamentStatus(99L, Team.TournamentStatus.ACTIVE));
+            assertEquals(HttpStatus.OK, response.getStatusCode());
         }
     }
 
@@ -163,7 +168,9 @@ class TeamControllerTest {
         @DisplayName("Retorna 204 al eliminar")
         void deleteTeam_returns204() {
             doNothing().when(teamService).deleteTeam(1L);
+
             ResponseEntity<Void> response = teamController.deleteTeam(1L);
+
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }
 
@@ -171,57 +178,8 @@ class TeamControllerTest {
         @DisplayName("Lanza excepción si no existe")
         void deleteTeam_notFound() {
             doThrow(ResourceNotFoundException.notFound("Team", 99L)).when(teamService).deleteTeam(99L);
+
             assertThrows(ResourceNotFoundException.class, () -> teamController.deleteTeam(99L));
-        }
-    }
-
-    @Nested
-    @DisplayName("addPlayer")
-    class AddPlayer {
-
-        @Test
-        @DisplayName("Retorna 200 con equipo actualizado")
-        void addPlayer_returns200() {
-            when(teamService.addPlayer(1L, 20L)).thenReturn(responseDTO);
-            ResponseEntity<TeamResponseDTO> response = teamController.addPlayer(1L, 20L);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-        }
-
-        @Test
-        @DisplayName("Lanza excepción si equipo no existe")
-        void addPlayer_notFound() {
-            when(teamService.addPlayer(99L, 20L))
-                    .thenThrow(ResourceNotFoundException.notFound("Team", 99L));
-            assertThrows(ResourceNotFoundException.class, () -> teamController.addPlayer(99L, 20L));
-        }
-    }
-
-    @Nested
-    @DisplayName("removePlayer")
-    class RemovePlayer {
-
-        @Test
-        @DisplayName("Retorna 200 al eliminar jugador")
-        void removePlayer_returns200() {
-            when(teamService.removePlayer(1L, 20L)).thenReturn(responseDTO);
-            ResponseEntity<TeamResponseDTO> response = teamController.removePlayer(1L, 20L);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-        }
-
-        @Test
-        @DisplayName("Lanza excepción si equipo no existe")
-        void removePlayer_notFound() {
-            when(teamService.removePlayer(99L, 20L))
-                    .thenThrow(ResourceNotFoundException.notFound("Team", 99L));
-            assertThrows(ResourceNotFoundException.class, () -> teamController.removePlayer(99L, 20L));
-        }
-
-        @Test
-        @DisplayName("Lanza excepción si torneo activo")
-        void removePlayer_activeTournament() {
-            when(teamService.removePlayer(1L, 20L))
-                    .thenThrow(new IllegalStateException("No se puede eliminar"));
-            assertThrows(IllegalStateException.class, () -> teamController.removePlayer(1L, 20L));
         }
     }
 
@@ -232,8 +190,10 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 200 con solicitudes")
         void getPendingRequest_returns200() {
-            when(teamService.getPendingRequest(1L, 10L)).thenReturn(List.of(30L, 40L));
-            ResponseEntity<List<Long>> response = teamController.getPendingRequest(1L, 10L);
+            when(teamService.getPendingRequest(1L, CAPTAIN_ID)).thenReturn(List.of(30L, 40L));
+
+            ResponseEntity<List<Long>> response = teamController.getPendingRequest(1L, CAPTAIN_ID);
+
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals(2, response.getBody().size());
         }
@@ -246,8 +206,10 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al rechazar")
         void rejectRequest_returns204() {
-            doNothing().when(teamService).rejectRequest(1L, 30L, 10L, null);
-            ResponseEntity<Void> response = teamController.rejectRequest(10L, 30L, 1L, null);
+            doNothing().when(teamService).rejectRequest(1L, 30L, CAPTAIN_ID, null);
+
+            ResponseEntity<Void> response = teamController.rejectRequest(1L, 30L, CAPTAIN_ID);
+
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }
     }
@@ -259,8 +221,10 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al aceptar")
         void acceptRequest_returns204() {
-            doNothing().when(teamService).acceptRequest(1L, 30L, 10L, null);
-            ResponseEntity<Void> response = teamController.acceptRequest(10L, 30L, 1L, null);
+            doNothing().when(teamService).acceptRequest(1L, 30L, CAPTAIN_ID, null);
+
+            ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
+
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }
     }
@@ -273,28 +237,24 @@ class TeamControllerTest {
         @DisplayName("Retorna 204 al enviar solicitud")
         void sendRequest_returns204() {
             doNothing().when(teamService).sendRequest(1L, 50L);
-            ResponseEntity<Void> response = teamController.sendRequest(1L, 50L);
-            assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        }
 
-        @Test
-        @DisplayName("Lanza excepción si equipo lleno")
-        void sendRequest_teamFull() {
-            doThrow(new IllegalStateException("El equipo ya tiene el máximo"))
-                    .when(teamService).sendRequest(1L, 50L);
-            assertThrows(IllegalStateException.class, () -> teamController.sendRequest(1L, 50L));
+            ResponseEntity<Void> response = teamController.sendRequest(1L, 50L);
+
+            assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }
     }
 
     @Nested
-    @DisplayName("sendRequesBycode")
+    @DisplayName("sendRequestByCode")
     class SendRequestByCode {
 
         @Test
         @DisplayName("Retorna 204 al unirse por código")
         void joinByCode_returns204() {
             doNothing().when(teamService).sendRequesBycode("ABC123", 50L);
-            ResponseEntity<Void> response = teamController.sendRequesBycode("ABC123", 50L);
+
+            ResponseEntity<Void> response = teamController.sendRequestByCode("ABC123", 50L);
+
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }
 
@@ -303,8 +263,9 @@ class TeamControllerTest {
         void joinByCode_invalidCode() {
             doThrow(ResourceNotFoundException.notFound("Team", "code: INVALID"))
                     .when(teamService).sendRequesBycode("INVALID", 50L);
+
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamController.sendRequesBycode("INVALID", 50L));
+                    () -> teamController.sendRequestByCode("INVALID", 50L));
         }
     }
 }

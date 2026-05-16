@@ -14,7 +14,6 @@ import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
 import com.microservice.Servicio_TeamReadbull.model.Team;
 import com.microservice.Servicio_TeamReadbull.repository.TeamRepository;
 
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,7 +22,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 @RequiredArgsConstructor
-@Builder
 @Service
 public class TeamService {
 
@@ -31,23 +29,24 @@ public class TeamService {
     private final TeamMapper teamMapper;
     private final WebClient webClient;    
 
-    public TeamResponseDTO createTeam(TeamRequestDTO dto) {
+    // El captainId viene del token JWT via header X-User-Id — no del body
+    public TeamResponseDTO createTeam(TeamRequestDTO dto, Long captainId) {
         Team team = new Team();
 
-        ArrayList<Long> initialPlayer = new ArrayList<>();
-        initialPlayer.add(dto.getCaptainId());
+        ArrayList<Long> initialPlayers = new ArrayList<>();
+        initialPlayers.add(captainId);
 
         team.setName(dto.getName());
         team.setIdTournament(dto.getIdTournament());
-        team.setIdCaptain(dto.getCaptainId());
+        team.setIdCaptain(captainId);
         team.setColors(dto.getColors());
         team.setPhoto(dto.getPhoto());
-        team.setPlayers(initialPlayer);
-        team.setCurrentPlayers(team.getPlayers().size());
+        team.setPlayers(initialPlayers);
+        team.setCurrentPlayers(initialPlayers.size());
         team.setTournamentStatus(Team.TournamentStatus.NONE);
 
         Team saved = teamRepository.save(team);
-        log.info("Equipo creado con ID: {} y nombre: {}", saved.getId(), saved.getName());
+        log.info("Equipo creado con ID: {} y nombre: {} por capitán ID: {}", saved.getId(), saved.getName(), captainId);
         return teamMapper.toDto(saved);
     }
 
@@ -64,25 +63,28 @@ public class TeamService {
                 .toList();
     }
 
-     public TeamResponseDTO updateTeam(Long id, TeamRequestDTO dto){
+    // HU-02: Solo el capitán de ESE equipo puede actualizar el nombre
+    // y solo si no está en torneo Activo o En Progreso
+    public TeamResponseDTO updateTeamName(Long id, String newName, Long captainId) {
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
 
+        if (!team.getIdCaptain().equals(captainId)) {
+            throw UnauthorizedException.notCaptain(id);
+        }
+
         if (team.isInActiveTournament()) {
             throw new IllegalStateException(
-            "No se puede actualizar el nombre del equipo mientras esté en un torneo Activo o En Progreso.");
-            }
-        team.setName(dto.getName());
-        team.setIdTournament(dto.getIdTournament());
-        team.setIdCaptain(dto.getIdCaptain());
-        team.setColors(dto.getColors());
-        team.setPhoto(dto.getPhoto());
-        team.setCurrentPlayers(team.getPlayers().size());
+                    "No se puede actualizar el nombre del equipo mientras esté en un torneo Activo o En Progreso.");
+        }
+
+        team.setName(newName);
         Team updated = teamRepository.save(team);
-        log.info("Equipo actualizado con ID: {} y nombre: {}", id, updated.getName());
+        log.info("Nombre del equipo ID {} actualizado a: {} por capitán ID: {}", id, updated.getName(), captainId);
         return teamMapper.toDto(updated);
     }
 
+    // Solo organizador o admin puede actualizar el estado del torneo
     public TeamResponseDTO updateTournamentStatus(Long teamId, Team.TournamentStatus status) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
@@ -92,6 +94,7 @@ public class TeamService {
         return teamMapper.toDto(saved);
     }
 
+    // Solo organizador o admin puede eliminar un equipo
     public void deleteTeam(Long id) {
         if (!teamRepository.existsById(id)) {
             throw ResourceNotFoundException.notFound("Team", id);
@@ -100,52 +103,34 @@ public class TeamService {
         log.info("Equipo eliminado con ID: {}", id);
     }
 
-    public TeamResponseDTO addPlayer(Long teamId, Long playerId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-        team.addPlayer(playerId);
-        Team saved = teamRepository.save(team);
-        log.info("Jugador ID {} agregado al equipo: {}", playerId, saved.getName());
-        return teamMapper.toDto(saved);
-    }
-
-    public TeamResponseDTO removePlayer(Long teamId, Long playerId) {
+    // Solo el capitán de ESE equipo puede ver las solicitudes pendientes
+    public List<Long> getPendingRequest(Long teamId, Long captainId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        if (team.isInActiveTournament()) {
-            throw new IllegalStateException(
-                    "No se puede eliminar un jugador mientras el equipo esté en un torneo Activo o En Progreso.");
-        }
-
-        team.removePlayer(playerId);
-        Team saved = teamRepository.save(team);
-        log.info("Jugador ID {} eliminado del equipo: {}", playerId, saved.getName());
-        return teamMapper.toDto(saved);
-    }
-
-    public List<Long> getPendingRequest(Long teamId, Long userId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
-
-        if (!team.getIdCaptain().equals(userId)) {
+        if (!team.getIdCaptain().equals(captainId)) {
             throw UnauthorizedException.notCaptain(teamId);
         }
 
         return team.getRequests();
     }
 
-    public void rejectRequest(Long teamId, Long playerId, Long userId, String authHeader) {
+    // Solo el capitán de ESE equipo puede rechazar solicitudes
+    public void rejectRequest(Long teamId, Long playerId, Long captainId, String authHeader) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        if (userId == null || !team.getIdCaptain().equals(userId)) {
+        if (captainId == null || !team.getIdCaptain().equals(captainId)) {
             throw UnauthorizedException.notCaptain(teamId);
+        }
+
+        if (!team.getRequests().contains(playerId)) {
+            throw new IllegalStateException("El jugador no tiene solicitud pendiente en este equipo.");
         }
 
         team.getRequests().remove(playerId);
         teamRepository.save(team);
-        log.info("Solicitud del jugador ID {} rechazada en equipo ID {}", playerId, teamId);
+        log.info("Solicitud del jugador ID {} rechazada en equipo ID {} por capitán ID {}", playerId, teamId, captainId);
     }
 
     public TeamResponseDTO acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
@@ -199,12 +184,21 @@ public class TeamService {
         log.info("Jugador ID {} envió solicitud al equipo ID {}", playerId, teamId);
     }
 
+    // Un jugador puede unirse a un equipo por código
     public void sendRequesBycode(String code, Long playerId) {
         Team team = teamRepository.findByCode(code)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", "code: " + code));
 
         if (team.getPlayers().size() >= team.getMaxPlayers()) {
             throw new IllegalStateException("El equipo ya tiene el máximo de " + team.getMaxPlayers() + " jugadores.");
+        }
+
+        if (team.getPlayers().contains(playerId)) {
+            throw new IllegalStateException("El jugador ya pertenece a este equipo.");
+        }
+
+        if (teamRepository.existsPlayerInAnyTeam(playerId)) {
+            throw new IllegalStateException("El jugador ya pertenece a otro equipo.");
         }
 
         if (team.getRequests().contains(playerId)) {

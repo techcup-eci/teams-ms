@@ -2,25 +2,16 @@ package com.microservice.Servicio_TeamReadbull.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import com.microservice.Servicio_TeamReadbull.model.Notification.ObservableSubject;
 import com.microservice.Servicio_TeamReadbull.model.Notification.Observer;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-
 
 @Data
 @NoArgsConstructor
@@ -30,6 +21,10 @@ import lombok.NoArgsConstructor;
 @Table(name = "teams")
 public class Team implements ObservableSubject, Observer {
 
+    public enum TournamentStatus {
+        NONE, DRAFT, ACTIVE, IN_PROGRESS, FINISHED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,62 +33,78 @@ public class Team implements ObservableSubject, Observer {
     private String name;
 
     @Transient
+    @Builder.Default
     private List<Observer> subscribers = new ArrayList<>();
 
     @Column(nullable = true)
-    private Long idTournament; 
+    private Long idTournament;
 
+    @Column(nullable = false, updatable = false)
+    private Long idCaptain;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Long idCaptain; 
+    private TournamentStatus tournamentStatus = TournamentStatus.NONE;
 
     @ElementCollection
+    @Builder.Default
     private List<Long> players = new ArrayList<>();
 
     @Column(nullable = false)
-    private int currentPlayers;
+    @Builder.Default
+    private int currentPlayers = 0;
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private String code;
+
+    @Column(nullable = false)
+    private boolean isRegistered = false;
+
+    @Column(nullable = false)
+    private String colors;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String state = "DRAFT";
+
+    @Column(nullable = false)
+    private String photo;
 
     @Transient
+    @Builder.Default
     private int maxPlayers = 12;
 
     @Transient
+    @Builder.Default
     private int minPlayers = 7;
 
     @Transient
+    @Builder.Default
     private boolean isValidTeam = false;
 
     @ElementCollection
     private List<Long> requests = new ArrayList<>();
 
-
-
+    @Override
+    public void subscribe(Observer observer) { subscribers.add(observer); }
 
     @Override
-    public void subscribe(Observer observer) {
-        subscribers.add(observer);
-    }
+    public void unsubscribe(Observer observer) { subscribers.remove(observer); }
 
     @Override
-    public void unsubscribe(Observer observer) {
-        subscribers.remove(observer);
-    }
+    public void notifyObservers() { subscribers.forEach(Observer::update); }
 
     @Override
-    public void notifyObservers() {
-        subscribers.forEach(Observer::update);
-    }
-
-    @Override
-    public void update() {
-        notifyObservers();
-    }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void update() { notifyObservers(); }
 
     public List<Observer> getSubscribers() { return subscribers; }
+
+    @PrePersist
+    private void generateCode() {
+        if (this.code == null) {
+            this.code = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -108,12 +119,14 @@ public class Team implements ObservableSubject, Observer {
         return id != null ? id.hashCode() : 0;
     }
 
+    // HU-02
+    public boolean isInActiveTournament() {
+        return tournamentStatus == TournamentStatus.ACTIVE
+                || tournamentStatus == TournamentStatus.IN_PROGRESS;
+    }
 
     public boolean hasValidNumberOfPlayers() {
-        if(currentPlayers<= maxPlayers && currentPlayers >= minPlayers) {
-            return true;
-        }
-        return false;
+        return currentPlayers >= minPlayers && currentPlayers <= maxPlayers;
     }
 
     public void addPlayer(Long playerId) {
@@ -126,16 +139,14 @@ public class Team implements ObservableSubject, Observer {
     }
 
     public void removePlayer(Long playerId) {
-        if (players.remove(playerId) && playerId != idCaptain) {
-            currentPlayers--;
-        } else if (playerId == idCaptain) {
+        if (playerId.equals(idCaptain)) {
             throw new IllegalStateException("No es posible eliminar al capitán del equipo.");
-        } else {
+        }
+        if (!players.remove(playerId)) {
             throw new IllegalStateException("Jugador no encontrado en el equipo.");
         }
+        currentPlayers--;
     }
-
-    
 
     public boolean playersWithDiferentDorsal() {
         return true;
@@ -146,14 +157,8 @@ public class Team implements ObservableSubject, Observer {
     }
 
     public void validateTeam() {
-        if (!this.hasValidNumberOfPlayers() 
-            || !this.playersWithDiferentDorsal() 
-            || !this.halfOfStudentsAreOfAllowedPrograms()) {
-                
-            this.isValidTeam = false;
-        } else {
-            this.isValidTeam = true;
-        }
-
+        this.isValidTeam = this.hasValidNumberOfPlayers()
+                && this.playersWithDiferentDorsal()
+                && this.halfOfStudentsAreOfAllowedPrograms();
     }
 }

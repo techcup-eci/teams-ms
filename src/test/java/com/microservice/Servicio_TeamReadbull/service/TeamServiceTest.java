@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.Optional;
 
+import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.exception.UnauthorizedException;
@@ -50,7 +51,7 @@ public class TeamServiceTest {
         when(teamRepository.save(any(Team.class))).thenReturn(team);
         when(teamMapper.toDto(team)).thenReturn(new TeamResponseDTO());
 
-        TeamResponseDTO result = teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID);
+        TeamResponseDTO result = teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class));
 
         assertNotNull(result);
         assertEquals("Nuevo Nombre", team.getName());
@@ -64,7 +65,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID);
+            teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class));
         });
 
         assertTrue(ex.getMessage().contains("Activo o En Progreso"));
@@ -78,7 +79,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID);
+            teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class));
         });
 
         assertTrue(ex.getMessage().contains("Activo o En Progreso"));
@@ -91,7 +92,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeamName(99L, "Nuevo Nombre", CAPTAIN_ID);
+            teamService.updateTeam(99L, CAPTAIN_ID, any(TeamRequestDTO.class));
         });
     }
 
@@ -103,7 +104,7 @@ public class TeamServiceTest {
         when(teamRepository.save(any(Team.class))).thenReturn(team);
         when(teamMapper.toDto(team)).thenReturn(new TeamResponseDTO());
 
-        TeamResponseDTO result = teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID);
+        TeamResponseDTO result = teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class));
 
         assertNotNull(result);
         verify(teamRepository).save(team);
@@ -116,7 +117,7 @@ public class TeamServiceTest {
         when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
         assertThrows(UnauthorizedException.class, () -> {
-            teamService.updateTeamName(1L, "Nuevo Nombre", otroUsuario);
+            teamService.updateTeam(1L, otroUsuario, any(TeamRequestDTO.class));
         });
 
         verify(teamRepository, never()).save(any());

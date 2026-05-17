@@ -198,7 +198,7 @@ class TeamServiceFullTest {
             when(teamRepository.save(any(Team.class))).thenReturn(team);
             when(teamMapper.toDto(team)).thenReturn(responseDTO);
 
-            TeamResponseDTO result = teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID);
+            TeamResponseDTO result = teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class));
 
             assertNotNull(result);
             assertEquals("Nuevo Nombre", team.getName());
@@ -211,7 +211,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID));
+                    () -> teamService.updateTeam(1L, "Nuevo Nombre", CAPTAIN_ID));
         }
 
         @Test
@@ -220,7 +220,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.updateTeamName(1L, "Nuevo Nombre", 99L));
+                    () -> teamService.updateTeam(1L, "Nuevo Nombre", 99L));
         }
 
         @Test
@@ -229,7 +229,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.updateTeamName(99L, "Nuevo Nombre", CAPTAIN_ID));
+                    () -> teamService.updateTeam(99L, "Nuevo Nombre", CAPTAIN_ID));
         }
     }
 

@@ -46,4 +46,4 @@ build/
 .claude/
 
 ## Otros ##
-.env.example.env
+.env

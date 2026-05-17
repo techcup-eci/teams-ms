@@ -211,7 +211,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeam(1L, "Nuevo Nombre", CAPTAIN_ID));
+                    () -> teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class)));
         }
 
         @Test
@@ -220,7 +220,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.updateTeam(1L, "Nuevo Nombre", 99L));
+                    () -> teamService.updateTeam(1L, 99L, any(TeamRequestDTO.class)));
         }
 
         @Test
@@ -229,7 +229,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.updateTeam(99L, "Nuevo Nombre", CAPTAIN_ID));
+                    () -> teamService.updateTeam(99L, CAPTAIN_ID, any(TeamRequestDTO.class)));
         }
     }
 

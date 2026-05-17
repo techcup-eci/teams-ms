@@ -65,7 +65,7 @@ public class TeamService {
 
     // HU-02: Solo el capitán de ESE equipo puede actualizar el nombre
     // y solo si no está en torneo Activo o En Progreso
-    public TeamResponseDTO updateTeamName(Long id, String newName, Long captainId) {
+    public TeamResponseDTO updateTeam(Long id, Long captainId, TeamRequestDTO dto) {
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
 
@@ -75,12 +75,18 @@ public class TeamService {
 
         if (team.isInActiveTournament()) {
             throw new IllegalStateException(
-                    "No se puede actualizar el nombre del equipo mientras esté en un torneo Activo o En Progreso.");
-        }
+            "No se puede actualizar el nombre del equipo mientras esté en un torneo Activo o En Progreso.");
+                }
 
-        team.setName(newName);
+        team.setName(dto.getName());
+        team.setIdTournament(dto.getIdTournament());
+        team.setIdCaptain(dto.getIdCaptain());
+        team.setColors(dto.getColors());
+        team.setPhoto(dto.getPhoto());
+        team.setCurrentPlayers(team.getPlayers().size());
+
         Team updated = teamRepository.save(team);
-        log.info("Nombre del equipo ID {} actualizado a: {} por capitán ID: {}", id, updated.getName(), captainId);
+        log.info("Nombre del equipo con ID {} actualizado a: {} por capitán ID: {}", id, updated.getName(), captainId);
         return teamMapper.toDto(updated);
     }
 

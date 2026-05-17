@@ -61,15 +61,15 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
-    // Solo el capitán puede actualizar el nombre de su equipo
+    // Solo el capitán puede actualizar datos de su equipo
     // El service valida que sea el capitán de ESE equipo específico
-    @PutMapping("/{id}/name")
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('CAPTAIN')")
-    public ResponseEntity<TeamResponseDTO> updateTeamName(
+    public ResponseEntity<TeamResponseDTO> updateTeam(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateNameRequestDTO dto,
+            @Valid @RequestBody TeamRequestDTO dto,
             @RequestHeader("X-User-Id") Long captainId) {
-        TeamResponseDTO response = teamService.updateTeamName(id, dto.getName(), captainId);
+        TeamResponseDTO response = teamService.updateTeam(id, captainId, dto);
         return ResponseEntity.ok(response);
     }
 

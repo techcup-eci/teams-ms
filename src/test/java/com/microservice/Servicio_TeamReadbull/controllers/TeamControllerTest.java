@@ -126,18 +126,18 @@ class TeamControllerTest {
     }
 
     @Nested
-    @DisplayName("updateTeamName")
-    class UpdateTeamName {
+    @DisplayName("updateTeam")
+    class UpdateTeam {
 
         @Test
         @DisplayName("Retorna 200 con equipo actualizado")
-        void updateTeamName_returns200() {
-            UpdateNameRequestDTO dto = new UpdateNameRequestDTO();
+        void updateTeam_returns200() {
+            TeamRequestDTO dto = new TeamRequestDTO();
             dto.setName("Nuevo Nombre");
 
-            when(teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID)).thenReturn(responseDTO);
+            when(teamService.updateTeam(1L, CAPTAIN_ID, dto)).thenReturn(responseDTO);
 
-            ResponseEntity<TeamResponseDTO> response = teamController.updateTeamName(1L, dto, CAPTAIN_ID);
+            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, dto, CAPTAIN_ID);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }

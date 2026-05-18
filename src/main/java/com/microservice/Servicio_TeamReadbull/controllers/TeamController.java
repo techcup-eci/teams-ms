@@ -109,7 +109,7 @@ public class TeamController {
             @PathVariable Long teamId,
             @PathVariable Long playerId,
             @RequestHeader("X-User-Id") Long captainId) {
-        teamService.acceptRequest(teamId, playerId, captainId, null);
+        teamService.acceptRequest(teamId, playerId, captainId);
         return ResponseEntity.noContent().build();
     }
 
@@ -120,7 +120,7 @@ public class TeamController {
             @PathVariable Long teamId,
             @PathVariable Long playerId,
             @RequestHeader("X-User-Id") Long captainId) {
-        teamService.rejectRequest(teamId, playerId, captainId, null);
+        teamService.rejectRequest(teamId, playerId, captainId);
         return ResponseEntity.noContent().build();
     }
 

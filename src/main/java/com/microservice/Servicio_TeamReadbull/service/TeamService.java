@@ -27,7 +27,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamMapper teamMapper;
-    private final WebClient webClient;    
+    private final WebClient webClient;
 
     // El captainId viene del token JWT via header X-User-Id — no del body
     public TeamResponseDTO createTeam(TeamRequestDTO dto, Long captainId) {
@@ -116,7 +116,7 @@ public class TeamService {
     }
 
     // Solo el capitán de ESE equipo puede rechazar solicitudes
-    public void rejectRequest(Long teamId, Long playerId, Long captainId, String authHeader) {
+    public void rejectRequest(Long teamId, Long playerId, Long captainId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
@@ -133,7 +133,7 @@ public class TeamService {
         log.info("Solicitud del jugador ID {} rechazada en equipo ID {} por capitán ID {}", playerId, teamId, captainId);
     }
 
-    public TeamResponseDTO acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
+    public TeamResponseDTO acceptRequest(Long teamId, Long playerId, Long userId) {
     Team team = teamRepository.findById(teamId) .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
     if (userId == null || !team.getIdCaptain().equals(userId)) {
@@ -148,11 +148,11 @@ public class TeamService {
     
     TeamResponseDTO response = teamMapper.toDto(saved);
 
-    if (!validateJerseys(playerIds, authHeader)) {
+    if (!validateJerseys(playerIds, String.valueOf(userId))) {
         response.setWarning("Hay jugadores con el mismo dorsal, revisen sus números.");
     }
 
-    if (!validatePrograms(playerIds, authHeader)) {
+    if (!validatePrograms(playerIds, String.valueOf(userId))) {
         response.setWarning("El equipo no cumple con la mitad de jugadores de programas permitidos.");
     }
 
@@ -210,39 +210,43 @@ public class TeamService {
         log.info("Jugador ID {} envió solicitud al equipo ID {} por código", playerId, team.getId());
     }
 
-    private boolean validateJerseys(List<Long> playerIds, String authHeader) {
+    private boolean validateJerseys(List<Long> playerIds, String userId) {
         try {
             Map<String, List<Long>> body = Map.of("playerIds", playerIds);
-            return Boolean.TRUE.equals(
-                webClient.post()
+            Map<String, Object> result = WebClient.builder()
+                    .baseUrl("http://localhost:8084")
+                    .build()
+                    .post()
                     .uri("/api/users/validate-jerseys")
-                    .header("Authorization", authHeader)
+                    .header("X-User-Id", userId)
                     .bodyValue(body)
                     .retrieve()
-                    .bodyToMono(Boolean.class)
-                    .block()
-            );
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .block();
+            return result != null && Boolean.TRUE.equals(result.get("valid"));
         } catch (Exception e) {
             log.warn("No se pudo validar dorsales: {}", e.getMessage());
-            return true; 
+            return true;
         }
     }
 
-    private boolean validatePrograms(List<Long> playerIds, String authHeader) {
+    private boolean validatePrograms(List<Long> playerIds, String userId) {
         try {
             Map<String, List<Long>> body = Map.of("playerIds", playerIds);
-            return Boolean.TRUE.equals(
-                webClient.post()
+            Map<String, Object> result = WebClient.builder()
+                    .baseUrl("http://localhost:8084")
+                    .build()
+                    .post()
                     .uri("/api/users/validate-programs")
-                    .header("Authorization", authHeader)
+                    .header("X-User-Id", userId)
                     .bodyValue(body)
                     .retrieve()
-                    .bodyToMono(Boolean.class)
-                    .block()
-            );
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .block();
+            return result != null && Boolean.TRUE.equals(result.get("valid"));
         } catch (Exception e) {
             log.warn("No se pudo validar programas: {}", e.getMessage());
-            return true; 
+            return true;
         }
     }
 }

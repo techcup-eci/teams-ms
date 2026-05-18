@@ -42,7 +42,7 @@ class TeamControllerTest {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(CAPTAIN_ID)
+                .captainId(CAPTAIN_ID)
                 .colors("Rojo")
                 .photo("foto.png")
                 .tournamentStatus(Team.TournamentStatus.NONE)
@@ -206,7 +206,7 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al rechazar")
         void rejectRequest_returns204() {
-            doNothing().when(teamService).rejectRequest(1L, 30L, CAPTAIN_ID, null);
+            doNothing().when(teamService).rejectRequest(1L, 30L, CAPTAIN_ID);
 
             ResponseEntity<Void> response = teamController.rejectRequest(1L, 30L, CAPTAIN_ID);
 
@@ -221,7 +221,7 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al aceptar")
         void acceptRequest_returns204() {
-            doNothing().when(teamService).acceptRequest(1L, 30L, CAPTAIN_ID, null);
+            doNothing().when(teamService).acceptRequest(1L, 30L, CAPTAIN_ID);
 
             ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
 

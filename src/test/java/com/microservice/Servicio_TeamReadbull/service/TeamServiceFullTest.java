@@ -67,7 +67,7 @@ class TeamServiceFullTest {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(CAPTAIN_ID)
+                .captainId(CAPTAIN_ID)
                 .build();
     }
 
@@ -341,7 +341,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID, null));
+            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID));
             assertThat(team.getRequests()).doesNotContain(30L);
         }
 
@@ -351,7 +351,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.rejectRequest(1L, 30L, 99L, null));
+                    () -> teamService.rejectRequest(1L, 30L, 99L));
         }
 
         @Test
@@ -361,7 +361,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID, null));
+                    () -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID));
         }
     }
 
@@ -379,7 +379,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null));
+            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID));
             assertThat(team.getPlayers()).contains(30L);
             assertThat(team.getRequests()).doesNotContain(30L);
         }
@@ -390,7 +390,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.acceptRequest(1L, 30L, 99L, null));
+                    () -> teamService.acceptRequest(1L, 30L, 99L));
         }
 
         @Test
@@ -400,7 +400,7 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null));
+                    () -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID));
         }
     }
 

@@ -37,7 +37,7 @@ public class TeamController {
     // Solo un capitán puede crear un equipo
     // El captainId se extrae del header X-User-Id que viene del gateway
     @PostMapping
-    @PreAuthorize("hasRole('CAPTAIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TeamResponseDTO> createTeam(
             @Valid @RequestBody TeamRequestDTO dto,
             @RequestHeader("X-User-Id") Long captainId) {

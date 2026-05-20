@@ -103,4 +103,17 @@ class TeamMapperTest {
         assertNotNull(dto);
         assertThat(dto.getCurrentPlayers()).isEqualTo(5);
     }
+    @Test
+    @DisplayName("toDto retorna null cuando team es null")
+    void toDto_nullTeam_returnsNull() {
+        TeamResponseDTO result = teamMapper.toDto(null);
+        assertNull(result);
+    }
+
+    @Test
+    @DisplayName("toEntity retorna null cuando dto es null")
+    void toEntity_nullDto_returnsNull() {
+        Team result = teamMapper.toEntity(null);
+        assertNull(result);
+    }
 }

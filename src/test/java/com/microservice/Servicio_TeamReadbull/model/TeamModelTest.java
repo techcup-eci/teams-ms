@@ -337,4 +337,63 @@ class TeamModelTest {
     void halfOfStudentsAreOfAllowedPrograms_returnsTrue() {
         assertTrue(team.halfOfStudentsAreOfAllowedPrograms());
     }
+    @Test
+    @DisplayName("generateCode genera código cuando es null")
+    void generateCode_whenCodeIsNull_generatesCode() {
+        Team newTeam = new Team();
+        newTeam.setColors("Rojo");
+        newTeam.setPhoto("foto.png");
+        newTeam.setName("Test FC");
+        newTeam.setIdCaptain(1L);
+        newTeam.setPlayers(new ArrayList<>());
+        newTeam.setCurrentPlayers(0);
+        // Llamar directamente via reflexión
+        try {
+            java.lang.reflect.Method method = Team.class.getDeclaredMethod("generateCode");
+            method.setAccessible(true);
+            method.invoke(newTeam);
+            assertNotNull(newTeam.getCode());
+            assertEquals(8, newTeam.getCode().length());
+        } catch (Exception e) {
+            fail("No debería lanzar excepción: " + e.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("generateCode no sobreescribe código existente")
+    void generateCode_whenCodeExists_doesNotOverwrite() {
+        Team newTeam = new Team();
+        newTeam.setColors("Rojo");
+        newTeam.setPhoto("foto.png");
+        newTeam.setName("Test FC");
+        newTeam.setIdCaptain(1L);
+        newTeam.setPlayers(new ArrayList<>());
+        newTeam.setCurrentPlayers(0);
+        try {
+            java.lang.reflect.Method method = Team.class.getDeclaredMethod("generateCode");
+            method.setAccessible(true);
+            // Primero generamos el código
+            method.invoke(newTeam);
+            String firstCode = newTeam.getCode();
+            // Volvemos a llamar — no debe sobreescribir
+            method.invoke(newTeam);
+            assertEquals(firstCode, newTeam.getCode());
+        } catch (Exception e) {
+            fail("No debería lanzar excepción: " + e.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("validateTeam con jugadores válidos y dorsales y programas correctos")
+    void validateTeam_allConditionsTrue() {
+        team.setCurrentPlayers(8);
+        team.validateTeam();
+        assertTrue(team.isValidTeam());
+    }
+
+    @Test
+    @DisplayName("equals retorna false cuando se compara con null")
+    void equals_withNull_returnsFalse() {
+        assertNotEquals(null, team);
+    }
 }

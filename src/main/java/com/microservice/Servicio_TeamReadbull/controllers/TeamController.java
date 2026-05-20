@@ -61,8 +61,8 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
-    // Solo el capitán puede actualizar datos de su equipo
-    // El service valida que sea el capitán de ESE equipo específico
+    // Solo el capitan puede actualizar datos de su equipo
+    // El service valida que sea el capitan de ese equipo específico
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('CAPTAIN')")
     public ResponseEntity<TeamResponseDTO> updateTeam(

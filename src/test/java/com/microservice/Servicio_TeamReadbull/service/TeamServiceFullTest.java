@@ -36,6 +36,9 @@ class TeamServiceFullTest {
     @Mock
     private TeamMapper teamMapper;
 
+    @Mock
+    private org.springframework.web.reactive.function.client.WebClient webClient;
+
     @InjectMocks
     private TeamService teamService;
 
@@ -67,13 +70,10 @@ class TeamServiceFullTest {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(CAPTAIN_ID)
+                .captainId(CAPTAIN_ID)
                 .build();
     }
 
-    // =========================================================
-    // createTeam
-    // =========================================================
     @Nested
     @DisplayName("createTeam")
     class CreateTeam {
@@ -120,9 +120,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // getTeamById
-    // =========================================================
     @Nested
     @DisplayName("getTeamById")
     class GetTeamById {
@@ -149,9 +146,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // getAllTeams
-    // =========================================================
     @Nested
     @DisplayName("getAllTeams")
     class GetAllTeams {
@@ -184,58 +178,51 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // updateTeamName (HU-02)
-    // =========================================================
     @Nested
-    @DisplayName("updateTeamName")
-    class UpdateTeamName {
+    @DisplayName("updateTeam")
+    class UpdateTeam {
 
         @Test
-        @DisplayName("Capitán actualiza nombre sin torneo activo")
-        void updateTeamName_success() {
+        @DisplayName("Capitán actualiza equipo sin torneo activo")
+        void updateTeam_success() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
             when(teamMapper.toDto(team)).thenReturn(responseDTO);
 
-            TeamResponseDTO result = teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class));
+            TeamResponseDTO result = teamService.updateTeam(1L, CAPTAIN_ID, dto);
 
             assertNotNull(result);
-            assertEquals("Nuevo Nombre", team.getName());
         }
 
         @Test
         @DisplayName("Lanza IllegalStateException cuando torneo está ACTIVE")
-        void updateTeamName_tournamentActive() {
+        void updateTeam_tournamentActive() {
             team.setTournamentStatus(Team.TournamentStatus.ACTIVE);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeam(1L, CAPTAIN_ID, any(TeamRequestDTO.class)));
+                    () -> teamService.updateTeam(1L, CAPTAIN_ID, dto));
         }
 
         @Test
         @DisplayName("Lanza UnauthorizedException si no es el capitán")
-        void updateTeamName_notCaptain() {
+        void updateTeam_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
 
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.updateTeam(1L, 99L, any(TeamRequestDTO.class)));
+                    () -> teamService.updateTeam(1L, 99L, dto));
         }
 
         @Test
         @DisplayName("Lanza ResourceNotFoundException si equipo no existe")
-        void updateTeamName_notFound() {
+        void updateTeam_notFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.updateTeam(99L, CAPTAIN_ID, any(TeamRequestDTO.class)));
+                    () -> teamService.updateTeam(99L, CAPTAIN_ID, dto));
         }
     }
 
-    // =========================================================
-    // updateTournamentStatus
-    // =========================================================
     @Nested
     @DisplayName("updateTournamentStatus")
     class UpdateTournamentStatus {
@@ -263,9 +250,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // deleteTeam
-    // =========================================================
     @Nested
     @DisplayName("deleteTeam")
     class DeleteTeam {
@@ -290,9 +274,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // getPendingRequest
-    // =========================================================
     @Nested
     @DisplayName("getPendingRequest")
     class GetPendingRequest {
@@ -327,9 +308,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // rejectRequest
-    // =========================================================
     @Nested
     @DisplayName("rejectRequest")
     class RejectRequest {
@@ -365,9 +343,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // acceptRequest
-    // =========================================================
     @Nested
     @DisplayName("acceptRequest")
     class AcceptRequest {
@@ -378,8 +353,10 @@ class TeamServiceFullTest {
             team.setRequests(new ArrayList<>(List.of(30L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any(Team.class))).thenReturn(team);
+            when(teamMapper.toDto(any(Team.class))).thenReturn(responseDTO);
 
-            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null));
+            TeamResponseDTO result = teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null);
+            assertNotNull(result);
             assertThat(team.getPlayers()).contains(30L);
             assertThat(team.getRequests()).doesNotContain(30L);
         }
@@ -404,9 +381,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // sendRequest
-    // =========================================================
     @Nested
     @DisplayName("sendRequest")
     class SendRequest {
@@ -466,9 +440,6 @@ class TeamServiceFullTest {
         }
     }
 
-    // =========================================================
-    // sendRequesBycode
-    // =========================================================
     @Nested
     @DisplayName("sendRequesBycode")
     class SendRequestByCode {

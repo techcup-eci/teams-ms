@@ -1,7 +1,6 @@
 package com.microservice.Servicio_TeamReadbull.dto.Request;
 
-import java.util.List;
-
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,23 +12,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TeamRequestDTO {
 
-    private Long id;
-
+    @NotBlank(message = "El nombre del equipo es obligatorio")
     private String name;
 
     private Long idTournament;
 
-    private Long idCaptain;
-
-    private List<Long> idPlayers;
-
-    private Integer currentPlayers;
-
     private String colors;
 
-    private Long captainId;
-
     private String photo;
-
-    private List<Long> players;
 }

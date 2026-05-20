@@ -14,21 +14,29 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+// Intercepta cada petición y extrae la identidad del usuario
+// que el API Gateway ya autenticó
 @Component
 public class GatewayAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
+        // Leer el usuario y rol que el gateway ya validó
         String userId = request.getHeader("X-User-Id");
         String role = request.getHeader("X-User-Role");
 
         if (userId != null && role != null) {
-            SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+            // Registrar la identidad en el contexto de seguridad
+            SimpleGrantedAuthority authority =
+                    new SimpleGrantedAuthority("ROLE_" + role);
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, List.of(authority));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                    new UsernamePasswordAuthenticationToken(
+                            userId, null, List.of(authority));
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
         }
 
         chain.doFilter(request, response);

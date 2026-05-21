@@ -452,7 +452,7 @@ class TeamServiceFullTest {
             when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(false);
             when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-            assertDoesNotThrow(() -> teamService.sendRequesBycode("ABC123", 50L));
+            assertDoesNotThrow(() -> teamService.sendRequestBycode("ABC123", 50L));
             assertThat(team.getRequests()).contains(50L);
         }
 
@@ -462,7 +462,7 @@ class TeamServiceFullTest {
             when(teamRepository.findByCode("INVALID")).thenReturn(Optional.empty());
 
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.sendRequesBycode("INVALID", 50L));
+                    () -> teamService.sendRequestBycode("INVALID", 50L));
         }
 
         @Test
@@ -474,38 +474,38 @@ class TeamServiceFullTest {
             when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequesBycode("ABC123", 50L));
+                    () -> teamService.sendRequestBycode("ABC123", 50L));
         }
 
         @Test
         @DisplayName("Lanza IllegalStateException si jugador ya pertenece al equipo")
-        void sendRequesBycode_playerAlreadyInTeam() {
+        void sendRequestBycode_playerAlreadyInTeam() {
             team.setPlayers(new ArrayList<>(List.of(CAPTAIN_ID, 50L)));
             when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequesBycode("ABC123", 50L));
+                    () -> teamService.sendRequestBycode("ABC123", 50L));
         }
 
         @Test
         @DisplayName("Lanza IllegalStateException si jugador pertenece a otro equipo")
-        void sendRequesBycode_playerInAnotherTeam() {
+        void sendRequestBycode_playerInAnotherTeam() {
             when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
             when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(true);
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequesBycode("ABC123", 50L));
+                    () -> teamService.sendRequestBycode("ABC123", 50L));
         }
 
         @Test
         @DisplayName("Lanza IllegalStateException si jugador ya tiene solicitud pendiente")
-        void sendRequesBycode_duplicateRequest() {
+        void sendRequestBycode_duplicateRequest() {
             team.setRequests(new ArrayList<>(List.of(50L)));
             when(teamRepository.findByCode("ABC123")).thenReturn(Optional.of(team));
             when(teamRepository.existsPlayerInAnyTeam(50L)).thenReturn(false);
 
             assertThrows(IllegalStateException.class,
-                    () -> teamService.sendRequesBycode("ABC123", 50L));
+                    () -> teamService.sendRequestBycode("ABC123", 50L));
         }
     }
 }

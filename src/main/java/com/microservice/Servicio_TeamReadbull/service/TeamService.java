@@ -230,8 +230,8 @@ public class TeamService {
         log.info("Jugador ID {} envió solicitud al equipo ID {}", playerId, teamId);
     }
 
-    // Un jugador puede unirse a un equipo por código único
-    public void sendRequesBycode(String code, Long playerId) {
+    // Un jugador puede unirse a un equipo por código
+    public void sendRequestBycode(String code, Long playerId) {
         Team team = teamRepository.findByCode(code)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", "code: " + code));
 

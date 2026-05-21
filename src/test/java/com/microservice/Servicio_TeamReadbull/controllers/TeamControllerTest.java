@@ -247,7 +247,7 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al unirse por código")
         void joinByCode_returns204() {
-            doNothing().when(teamService).sendRequesBycode("ABC123", 50L);
+            doNothing().when(teamService).sendRequestBycode("ABC123", 50L);
 
             ResponseEntity<Void> response = teamController.sendRequestByCode("ABC123", 50L);
 
@@ -258,7 +258,7 @@ class TeamControllerTest {
         @DisplayName("Lanza excepción si código inválido")
         void joinByCode_invalidCode() {
             doThrow(ResourceNotFoundException.notFound("Team", "code: INVALID"))
-                    .when(teamService).sendRequesBycode("INVALID", 50L);
+                    .when(teamService).sendRequestBycode("INVALID", 50L);
 
             assertThrows(ResourceNotFoundException.class,
                     () -> teamController.sendRequestByCode("INVALID", 50L));

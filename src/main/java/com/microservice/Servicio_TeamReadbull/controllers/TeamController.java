@@ -37,7 +37,7 @@ public class TeamController {
     // Solo un capitán puede crear un equipo
     // El captainId se extrae del header X-User-Id que viene del gateway
     @PostMapping
-    //@PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TeamResponseDTO> createTeam(
             @Valid @RequestBody TeamRequestDTO dto,
             @RequestHeader("X-User-Id") Long captainId) {
@@ -47,7 +47,7 @@ public class TeamController {
 
     // Cualquier usuario autenticado puede ver todos los equipos
     @GetMapping
-    //@PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<TeamResponseDTO>> getAllTeams() {
         List<TeamResponseDTO> teams = teamService.getAllteams();
         return ResponseEntity.ok(teams);
@@ -55,7 +55,7 @@ public class TeamController {
 
     // Cualquier usuario autenticado puede ver un equipo por ID
     @GetMapping("/{id}")
-    //@PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TeamResponseDTO> getTeamById(@PathVariable Long id) {
         TeamResponseDTO response = teamService.getTeamById(id);
         return ResponseEntity.ok(response);
@@ -64,7 +64,7 @@ public class TeamController {
     // Solo el capitán puede actualizar datos de su equipo
     // El service valida que sea el capitán de ESE equipo específico
     @PutMapping("/{id}")
-    //@PreAuthorize("hasRole('CAPTAIN')")
+    @PreAuthorize("hasRole('CAPTAIN')")
     public ResponseEntity<TeamResponseDTO> updateTeam(
             @PathVariable Long id,
             @Valid @RequestBody TeamRequestDTO dto,
@@ -76,7 +76,7 @@ public class TeamController {
     // Solo el organizador o admin puede actualizar el estado del torneo en el equipo
     // Este endpoint es llamado por el servicio de torneos cuando cambia el estado
     @PutMapping("/{id}/tournament-status")
-    //@PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     public ResponseEntity<TeamResponseDTO> updateTournamentStatus(
             @PathVariable Long id,
             @RequestBody Team.TournamentStatus status) {
@@ -86,7 +86,7 @@ public class TeamController {
 
     // Solo el organizador o admin puede eliminar un equipo
     @DeleteMapping("/{id}")
-    //@PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
         teamService.deleteTeam(id);
         return ResponseEntity.noContent().build();
@@ -94,7 +94,7 @@ public class TeamController {
 
     // Solo el capitán puede eliminar jugadores de su equipo
     @DeleteMapping("/{teamId}/players/{playerId}")
-    //@PreAuthorize("hasRole('CAPTAIN')")
+    @PreAuthorize("hasRole('CAPTAIN')")
     public ResponseEntity<Void> removePlayer(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
@@ -106,7 +106,7 @@ public class TeamController {
 
     // Solo el capitán puede ver las solicitudes pendientes de su equipo
     @GetMapping("/{teamId}/solicitudes")
-    //@PreAuthorize("hasRole('CAPTAIN')")
+    @PreAuthorize("hasRole('CAPTAIN')")
     public ResponseEntity<List<Long>> getPendingRequest(
             @PathVariable Long teamId,
             @RequestHeader("X-User-Id") Long captainId) {
@@ -116,7 +116,7 @@ public class TeamController {
 
     // Solo el capitán puede aceptar solicitudes de su equipo
     @PostMapping("/{teamId}/solicitudes/{playerId}/accept")
-    //@PreAuthorize("hasRole('CAPTAIN')")
+    @PreAuthorize("hasRole('CAPTAIN')")
     public ResponseEntity<Void> acceptRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
@@ -127,7 +127,7 @@ public class TeamController {
 
     // Solo el capitán puede rechazar solicitudes de su equipo
     @PostMapping("/{teamId}/solicitudes/{playerId}/reject")
-    //@PreAuthorize("hasRole('CAPTAIN')")
+    @PreAuthorize("hasRole('CAPTAIN')")
     public ResponseEntity<Void> rejectRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
@@ -139,7 +139,7 @@ public class TeamController {
     // Solo un jugador puede enviar solicitud de vinculación a un equipo
     // Un jugador solo puede tener 1 solicitud activa a la vez
     @PostMapping("/{teamId}/solicitudes")
-    //@PreAuthorize("hasRole('PLAYER')")
+    @PreAuthorize("hasRole('PLAYER')")
     public ResponseEntity<Void> sendRequest(
             @PathVariable Long teamId,
             @RequestHeader("X-User-Id") Long playerId) {
@@ -149,11 +149,11 @@ public class TeamController {
 
     // Solo un jugador puede unirse a un equipo por código
     @PostMapping("/join")
-    //@PreAuthorize("hasRole('PLAYER')")
+    @PreAuthorize("hasRole('PLAYER')")
     public ResponseEntity<Void> sendRequestByCode(
             @RequestParam String code,
             @RequestHeader("X-User-Id") Long playerId) {
-        teamService.sendRequesBycode(code, playerId);
+        teamService.sendRequestBycode(code, playerId);
         return ResponseEntity.noContent().build();
     }
 }

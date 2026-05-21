@@ -219,7 +219,7 @@ public class TeamService {
     }
 
     // Un jugador puede unirse a un equipo por código
-    public void sendRequesBycode(String code, Long playerId) {
+    public void sendRequestBycode(String code, Long playerId) {
         Team team = teamRepository.findByCode(code)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", "code: " + code));
 

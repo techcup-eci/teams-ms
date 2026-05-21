@@ -42,7 +42,7 @@ class TeamMapperTest {
         assertNotNull(dto);
         assertEquals(1L, dto.getId());
         assertEquals("Redbull FC", dto.getName());
-        assertEquals(10L, dto.getIdCaptain());
+        assertEquals(10L, dto.getCaptainId());
         assertEquals(5L, dto.getIdTournament());
         assertEquals("Rojo y Azul", dto.getColors());
         assertEquals("foto.png", dto.getPhoto());
@@ -71,7 +71,6 @@ class TeamMapperTest {
         TeamRequestDTO dto = TeamRequestDTO.builder()
                 .name("Nuevo Equipo")
                 .idTournament(3L)
-                .idCaptain(15L)
                 .colors("Verde")
                 .photo("verde.png")
                 .build();
@@ -83,7 +82,6 @@ class TeamMapperTest {
         assertEquals(3L, team.getIdTournament());
         assertEquals("Verde", team.getColors());
         assertEquals("verde.png", team.getPhoto());
-        // id debe ser ignorado (null)
         assertNull(team.getId());
     }
 
@@ -104,5 +102,18 @@ class TeamMapperTest {
 
         assertNotNull(dto);
         assertThat(dto.getCurrentPlayers()).isEqualTo(5);
+    }
+    @Test
+    @DisplayName("toDto retorna null cuando team es null")
+    void toDto_nullTeam_returnsNull() {
+        TeamResponseDTO result = teamMapper.toDto(null);
+        assertNull(result);
+    }
+
+    @Test
+    @DisplayName("toEntity retorna null cuando dto es null")
+    void toEntity_nullDto_returnsNull() {
+        Team result = teamMapper.toEntity(null);
+        assertNull(result);
     }
 }

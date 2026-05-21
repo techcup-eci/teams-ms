@@ -1,7 +1,6 @@
 package com.microservice.Servicio_TeamReadbull.controllers;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Request.UpdateNameRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.model.Team;
@@ -42,7 +41,7 @@ class TeamControllerTest {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(CAPTAIN_ID)
+                .captainId(CAPTAIN_ID)
                 .colors("Rojo")
                 .photo("foto.png")
                 .tournamentStatus(Team.TournamentStatus.NONE)
@@ -132,12 +131,9 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 200 con equipo actualizado")
         void updateTeam_returns200() {
-            TeamRequestDTO dto = new TeamRequestDTO();
-            dto.setName("Nuevo Nombre");
+            when(teamService.updateTeam(1L, CAPTAIN_ID, requestDTO)).thenReturn(responseDTO);
 
-            when(teamService.updateTeam(1L, CAPTAIN_ID, dto)).thenReturn(responseDTO);
-
-            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, dto, CAPTAIN_ID);
+            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, requestDTO, CAPTAIN_ID);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }
@@ -221,7 +217,7 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al aceptar")
         void acceptRequest_returns204() {
-            doNothing().when(teamService).acceptRequest(1L, 30L, CAPTAIN_ID, null);
+            when(teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null)).thenReturn(responseDTO);
 
             ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
 

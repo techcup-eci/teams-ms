@@ -90,6 +90,34 @@ public class TeamService {
         return teamMapper.toDto(updated);
     }
 
+    public void removePlayer(Long teamId, Long playerId, Long captainId) {
+        Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+
+        // Verificar que quien elimina es el capitán
+        if (!team.getIdCaptain().equals(captainId)) {
+            throw UnauthorizedException.notCaptain(teamId);
+        }
+
+        // Verificar que no haya torneo activo
+        if (team.getTournamentStatus() == Team.TournamentStatus.ACTIVE || 
+            team.getTournamentStatus() == Team.TournamentStatus.IN_PROGRESS) {
+            throw new IllegalStateException("No se puede eliminar jugadores con un torneo activo");
+        }
+
+        // Verificar que el jugador esté en el equipo
+        if (!team.getPlayers().contains(playerId)) {
+            throw new IllegalStateException("El jugador no pertenece a este equipo");
+        }
+
+        team.getPlayers().remove(playerId);
+        team.setCurrentPlayers(team.getCurrentPlayers() - 1);
+        teamRepository.save(team);
+
+        log.info("Jugador ID {} eliminado del equipo ID {} por capitán ID {}", 
+            playerId, teamId, captainId);
+    }
+
     // Solo organizador o admin puede actualizar el estado del torneo
     public TeamResponseDTO updateTournamentStatus(Long teamId, Team.TournamentStatus status) {
         Team team = teamRepository.findById(teamId)

@@ -61,15 +61,15 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
-    // Solo el capitán puede actualizar el nombre de su equipo
-    // El service valida que sea el capitán de ESE equipo específico
-    @PutMapping("/{id}/name")
+    // Solo el capitan puede actualizar datos de su equipo
+    // El service valida que sea el capitan de ese equipo específico
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('CAPTAIN')")
-    public ResponseEntity<TeamResponseDTO> updateTeamName(
+    public ResponseEntity<TeamResponseDTO> updateTeam(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateNameRequestDTO dto,
+            @Valid @RequestBody TeamRequestDTO dto,
             @RequestHeader("X-User-Id") Long captainId) {
-        TeamResponseDTO response = teamService.updateTeamName(id, dto.getName(), captainId);
+        TeamResponseDTO response = teamService.updateTeam(id, captainId, dto);
         return ResponseEntity.ok(response);
     }
 
@@ -89,6 +89,18 @@ public class TeamController {
     @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
         teamService.deleteTeam(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Solo el capitán puede eliminar jugadores de su equipo
+    @DeleteMapping("/{teamId}/players/{playerId}")
+    @PreAuthorize("hasRole('CAPTAIN')")
+    public ResponseEntity<Void> removePlayer(
+            @PathVariable Long teamId,
+            @PathVariable Long playerId,
+            @RequestHeader("X-User-Id") Long captainId) {
+        
+        teamService.removePlayer(teamId, playerId, captainId);
         return ResponseEntity.noContent().build();
     }
 
@@ -141,7 +153,7 @@ public class TeamController {
     public ResponseEntity<Void> sendRequestByCode(
             @RequestParam String code,
             @RequestHeader("X-User-Id") Long playerId) {
-        teamService.sendRequesBycode(code, playerId);
+        teamService.sendRequestBycode(code, playerId);
         return ResponseEntity.noContent().build();
     }
 }

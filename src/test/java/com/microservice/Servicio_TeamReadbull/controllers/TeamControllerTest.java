@@ -1,7 +1,6 @@
 package com.microservice.Servicio_TeamReadbull.controllers;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
-import com.microservice.Servicio_TeamReadbull.dto.Request.UpdateNameRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.model.Team;
@@ -42,7 +41,7 @@ class TeamControllerTest {
         responseDTO = TeamResponseDTO.builder()
                 .id(1L)
                 .name("Redbull FC")
-                .idCaptain(CAPTAIN_ID)
+                .captainId(CAPTAIN_ID)
                 .colors("Rojo")
                 .photo("foto.png")
                 .tournamentStatus(Team.TournamentStatus.NONE)
@@ -126,18 +125,15 @@ class TeamControllerTest {
     }
 
     @Nested
-    @DisplayName("updateTeamName")
-    class UpdateTeamName {
+    @DisplayName("updateTeam")
+    class UpdateTeam {
 
         @Test
         @DisplayName("Retorna 200 con equipo actualizado")
-        void updateTeamName_returns200() {
-            UpdateNameRequestDTO dto = new UpdateNameRequestDTO();
-            dto.setName("Nuevo Nombre");
+        void updateTeam_returns200() {
+            when(teamService.updateTeam(1L, CAPTAIN_ID, requestDTO)).thenReturn(responseDTO);
 
-            when(teamService.updateTeamName(1L, "Nuevo Nombre", CAPTAIN_ID)).thenReturn(responseDTO);
-
-            ResponseEntity<TeamResponseDTO> response = teamController.updateTeamName(1L, dto, CAPTAIN_ID);
+            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, requestDTO, CAPTAIN_ID);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }
@@ -221,7 +217,7 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al aceptar")
         void acceptRequest_returns204() {
-            doNothing().when(teamService).acceptRequest(1L, 30L, CAPTAIN_ID, null);
+            when(teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null)).thenReturn(responseDTO);
 
             ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
 
@@ -251,7 +247,7 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al unirse por código")
         void joinByCode_returns204() {
-            doNothing().when(teamService).sendRequesBycode("ABC123", 50L);
+            doNothing().when(teamService).sendRequestBycode("ABC123", 50L);
 
             ResponseEntity<Void> response = teamController.sendRequestByCode("ABC123", 50L);
 
@@ -262,7 +258,7 @@ class TeamControllerTest {
         @DisplayName("Lanza excepción si código inválido")
         void joinByCode_invalidCode() {
             doThrow(ResourceNotFoundException.notFound("Team", "code: INVALID"))
-                    .when(teamService).sendRequesBycode("INVALID", 50L);
+                    .when(teamService).sendRequestBycode("INVALID", 50L);
 
             assertThrows(ResourceNotFoundException.class,
                     () -> teamController.sendRequestByCode("INVALID", 50L));

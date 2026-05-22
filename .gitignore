@@ -46,4 +46,6 @@ build/
 .claude/
 
 ## Otros ##
-.env.example.env
+.env
+
+application-local.properties

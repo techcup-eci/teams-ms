@@ -37,7 +37,7 @@ public class TeamController {
     // Solo un capitán puede crear un equipo
     // El captainId se extrae del header X-User-Id que viene del gateway
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and !hasRole('CAPTAIN')") 
     public ResponseEntity<TeamResponseDTO> createTeam(
             @Valid @RequestBody TeamRequestDTO dto,
             @RequestHeader("X-User-Id") Long captainId) {
@@ -64,7 +64,7 @@ public class TeamController {
     // Solo el capitan puede actualizar datos de su equipo
     // El service valida que sea el capitan de ese equipo específico
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('CAPTAIN')" or "hasRole('ADMIN')" or "hasRole('ORGANIZER')")
+    @PreAuthorize("hasRole('CAPTAIN') or hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<TeamResponseDTO> updateTeam(
             @PathVariable Long id,
             @Valid @RequestBody TeamRequestDTO dto,
@@ -86,7 +86,7 @@ public class TeamController {
 
     // Solo el organizador o admin puede eliminar un equipo
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')" or "hasRole('CAPTAIN')")
+    @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN') or hasRole('CAPTAIN')")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
         teamService.deleteTeam(id);
         return ResponseEntity.noContent().build();
@@ -94,7 +94,7 @@ public class TeamController {
 
     // Solo el capitán puede eliminar jugadores de su equipo
     @DeleteMapping("/{teamId}/players/{playerId}")
-    @PreAuthorize("hasRole('CAPTAIN')" or "hasRole('ADMIN')" or "hasRole('ORGANIZER')")
+    @PreAuthorize("hasRole('CAPTAIN') or hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<Void> removePlayer(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
@@ -106,7 +106,7 @@ public class TeamController {
 
     // Solo el capitán puede ver las solicitudes pendientes de su equipo
     @GetMapping("/{teamId}/solicitudes")
-    @PreAuthorize("hasRole('CAPTAIN')" or "hasRole('ADMIN')" or "hasRole('ORGANIZER')")
+    @PreAuthorize("hasRole('CAPTAIN') or hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<List<Long>> getPendingRequest(
             @PathVariable Long teamId,
             @RequestHeader("X-User-Id") Long captainId) {
@@ -116,7 +116,7 @@ public class TeamController {
 
     // Solo el capitán puede aceptar solicitudes de su equipo
     @PostMapping("/{teamId}/solicitudes/{playerId}/accept")
-    @PreAuthorize("hasRole('CAPTAIN')" or "hasRole('ADMIN')" or "hasRole('ORGANIZER')")
+    @PreAuthorize("hasRole('CAPTAIN') or hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<Void> acceptRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
@@ -127,7 +127,7 @@ public class TeamController {
 
     // Solo el capitán puede rechazar solicitudes de su equipo
     @PostMapping("/{teamId}/solicitudes/{playerId}/reject")
-    @PreAuthorize("hasRole('CAPTAIN')" or "hasRole('ADMIN')" or "hasRole('ORGANIZER')")
+    @PreAuthorize("hasRole('CAPTAIN') or hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<Void> rejectRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,

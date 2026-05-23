@@ -35,6 +35,8 @@ class TeamControllerTest {
     private TeamResponseDTO responseDTO;
     private TeamRequestDTO requestDTO;
     private final Long CAPTAIN_ID = 10L;
+    private final String CAPTAIN_ROLE = "CAPTAIN";
+    private final String BEARER_TOKEN = "Bearer test-token";
 
     @BeforeEach
     void setUp() {
@@ -131,9 +133,9 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 200 con equipo actualizado")
         void updateTeam_returns200() {
-            when(teamService.updateTeam(1L, CAPTAIN_ID, requestDTO)).thenReturn(responseDTO);
+            when(teamService.updateTeam(1L, CAPTAIN_ID, CAPTAIN_ROLE, requestDTO)).thenReturn(responseDTO);
 
-            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, requestDTO, CAPTAIN_ID);
+            ResponseEntity<TeamResponseDTO> response = teamController.updateTeam(1L, requestDTO, CAPTAIN_ID, CAPTAIN_ROLE);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }
@@ -186,9 +188,9 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 200 con solicitudes")
         void getPendingRequest_returns200() {
-            when(teamService.getPendingRequest(1L, CAPTAIN_ID)).thenReturn(List.of(30L, 40L));
+            when(teamService.getPendingRequest(1L, CAPTAIN_ID, CAPTAIN_ROLE)).thenReturn(List.of(30L, 40L));
 
-            ResponseEntity<List<Long>> response = teamController.getPendingRequest(1L, CAPTAIN_ID);
+            ResponseEntity<List<Long>> response = teamController.getPendingRequest(1L, CAPTAIN_ID, CAPTAIN_ROLE);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals(2, response.getBody().size());
@@ -202,9 +204,9 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al rechazar")
         void rejectRequest_returns204() {
-            doNothing().when(teamService).rejectRequest(1L, 30L, CAPTAIN_ID, null);
+            doNothing().when(teamService).rejectRequest(1L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, BEARER_TOKEN);
 
-            ResponseEntity<Void> response = teamController.rejectRequest(1L, 30L, CAPTAIN_ID);
+            ResponseEntity<Void> response = teamController.rejectRequest(1L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, BEARER_TOKEN);
 
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }
@@ -217,9 +219,9 @@ class TeamControllerTest {
         @Test
         @DisplayName("Retorna 204 al aceptar")
         void acceptRequest_returns204() {
-            when(teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null)).thenReturn(responseDTO);
+            when(teamService.acceptRequest(1L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, BEARER_TOKEN)).thenReturn(responseDTO);
 
-            ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
+            ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, BEARER_TOKEN);
 
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         }

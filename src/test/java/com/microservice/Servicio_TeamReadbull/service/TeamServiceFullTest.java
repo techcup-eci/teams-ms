@@ -49,6 +49,9 @@ class TeamServiceFullTest {
     private TeamRequestDTO dto;
     private TeamResponseDTO responseDTO;
     private final Long CAPTAIN_ID = 10L;
+    private final String CAPTAIN_ROLE = "CAPTAIN";
+    private final String ADMIN_ROLE = "ADMIN";
+    private final String USER_ROLE = "USER";
 
     @BeforeEach
     void setUp() {
@@ -154,15 +157,24 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any())).thenReturn(team);
             when(teamMapper.toDto(team)).thenReturn(responseDTO);
-            assertDoesNotThrow(() -> teamService.updateTeam(1L, CAPTAIN_ID, dto));
+            assertDoesNotThrow(() -> teamService.updateTeam(1L, CAPTAIN_ID, CAPTAIN_ROLE, dto));
             verify(teamRepository).save(team);
         }
 
-        @Test @DisplayName("Lanza excepción si no es el capitán")
-        void updateTeam_notCaptain() {
+        @Test @DisplayName("Admin puede actualizar aunque no sea capitán")
+        void updateTeam_adminCanUpdate() {
+            team.setTournamentStatus(Team.TournamentStatus.NONE);
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+            when(teamRepository.save(any())).thenReturn(team);
+            when(teamMapper.toDto(team)).thenReturn(responseDTO);
+            assertDoesNotThrow(() -> teamService.updateTeam(1L, 99L, ADMIN_ROLE, dto));
+        }
+
+        @Test @DisplayName("Lanza excepción si no es capitán ni privilegiado")
+        void updateTeam_notCaptainNotPrivileged() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.updateTeam(1L, 99L, dto));
+                    () -> teamService.updateTeam(1L, 99L, USER_ROLE, dto));
         }
 
         @Test @DisplayName("Lanza excepción si torneo ACTIVE")
@@ -170,7 +182,7 @@ class TeamServiceFullTest {
             team.setTournamentStatus(Team.TournamentStatus.ACTIVE);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeam(1L, CAPTAIN_ID, dto));
+                    () -> teamService.updateTeam(1L, CAPTAIN_ID, CAPTAIN_ROLE, dto));
         }
 
         @Test @DisplayName("Lanza excepción si torneo IN_PROGRESS")
@@ -178,14 +190,14 @@ class TeamServiceFullTest {
             team.setTournamentStatus(Team.TournamentStatus.IN_PROGRESS);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(IllegalStateException.class,
-                    () -> teamService.updateTeam(1L, CAPTAIN_ID, dto));
+                    () -> teamService.updateTeam(1L, CAPTAIN_ID, CAPTAIN_ROLE, dto));
         }
 
         @Test @DisplayName("Lanza excepción si equipo no existe")
         void updateTeam_notFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.updateTeam(99L, CAPTAIN_ID, dto));
+                    () -> teamService.updateTeam(99L, CAPTAIN_ID, CAPTAIN_ROLE, dto));
         }
     }
 
@@ -237,15 +249,25 @@ class TeamServiceFullTest {
             team.setTournamentStatus(Team.TournamentStatus.NONE);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any())).thenReturn(team);
-            assertDoesNotThrow(() -> teamService.removePlayer(1L, 20L, CAPTAIN_ID));
+            assertDoesNotThrow(() -> teamService.removePlayer(1L, 20L, CAPTAIN_ID, CAPTAIN_ROLE));
             assertThat(team.getPlayers()).doesNotContain(20L);
         }
 
-        @Test @DisplayName("Lanza excepción si no es el capitán")
-        void removePlayer_notCaptain() {
+        @Test @DisplayName("Admin puede eliminar aunque no sea capitán")
+        void removePlayer_adminCanRemove() {
+            team.setPlayers(new ArrayList<>(Arrays.asList(CAPTAIN_ID, 20L)));
+            team.setCurrentPlayers(2);
+            team.setTournamentStatus(Team.TournamentStatus.NONE);
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+            when(teamRepository.save(any())).thenReturn(team);
+            assertDoesNotThrow(() -> teamService.removePlayer(1L, 20L, 99L, ADMIN_ROLE));
+        }
+
+        @Test @DisplayName("Lanza excepción si no es capitán ni privilegiado")
+        void removePlayer_notCaptainNotPrivileged() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.removePlayer(1L, 20L, 99L));
+                    () -> teamService.removePlayer(1L, 20L, 99L, USER_ROLE));
         }
 
         @Test @DisplayName("Lanza excepción si torneo activo")
@@ -253,7 +275,7 @@ class TeamServiceFullTest {
             team.setTournamentStatus(Team.TournamentStatus.ACTIVE);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(IllegalStateException.class,
-                    () -> teamService.removePlayer(1L, 20L, CAPTAIN_ID));
+                    () -> teamService.removePlayer(1L, 20L, CAPTAIN_ID, CAPTAIN_ROLE));
         }
 
         @Test @DisplayName("Lanza excepción si jugador no está en el equipo")
@@ -261,14 +283,14 @@ class TeamServiceFullTest {
             team.setTournamentStatus(Team.TournamentStatus.NONE);
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(IllegalStateException.class,
-                    () -> teamService.removePlayer(1L, 99L, CAPTAIN_ID));
+                    () -> teamService.removePlayer(1L, 99L, CAPTAIN_ID, CAPTAIN_ROLE));
         }
 
         @Test @DisplayName("Lanza excepción si equipo no existe")
         void removePlayer_teamNotFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.removePlayer(99L, 20L, CAPTAIN_ID));
+                    () -> teamService.removePlayer(99L, 20L, CAPTAIN_ID, CAPTAIN_ROLE));
         }
     }
 
@@ -279,21 +301,28 @@ class TeamServiceFullTest {
         void getPendingRequest_success() {
             team.setRequests(new ArrayList<>(List.of(30L, 40L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
-            assertThat(teamService.getPendingRequest(1L, CAPTAIN_ID)).containsExactly(30L, 40L);
+            assertThat(teamService.getPendingRequest(1L, CAPTAIN_ID, CAPTAIN_ROLE)).containsExactly(30L, 40L);
         }
 
-        @Test @DisplayName("Lanza excepción si no es capitán")
-        void getPendingRequest_notCaptain() {
+        @Test @DisplayName("Admin ve solicitudes aunque no sea capitán")
+        void getPendingRequest_adminCanSee() {
+            team.setRequests(new ArrayList<>(List.of(30L, 40L)));
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+            assertThat(teamService.getPendingRequest(1L, 99L, ADMIN_ROLE)).containsExactly(30L, 40L);
+        }
+
+        @Test @DisplayName("Lanza excepción si no es capitán ni privilegiado")
+        void getPendingRequest_notCaptainNotPrivileged() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.getPendingRequest(1L, 99L));
+                    () -> teamService.getPendingRequest(1L, 99L, USER_ROLE));
         }
 
         @Test @DisplayName("Lanza excepción si equipo no existe")
         void getPendingRequest_notFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.getPendingRequest(99L, CAPTAIN_ID));
+                    () -> teamService.getPendingRequest(99L, CAPTAIN_ID, CAPTAIN_ROLE));
         }
     }
 
@@ -305,36 +334,44 @@ class TeamServiceFullTest {
             team.setRequests(new ArrayList<>(List.of(30L)));
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any())).thenReturn(team);
-            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID, null));
+            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, null));
             assertThat(team.getRequests()).doesNotContain(30L);
         }
 
-        @Test @DisplayName("Lanza excepción si capitanId es null")
+        @Test @DisplayName("Admin rechaza solicitud aunque no sea capitán")
+        void rejectRequest_adminCanReject() {
+            team.setRequests(new ArrayList<>(List.of(30L)));
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+            when(teamRepository.save(any())).thenReturn(team);
+            assertDoesNotThrow(() -> teamService.rejectRequest(1L, 30L, 99L, ADMIN_ROLE, null));
+        }
+
+        @Test @DisplayName("Lanza excepción si userId es null y no es privilegiado")
         void rejectRequest_nullCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.rejectRequest(1L, 30L, null, null));
+                    () -> teamService.rejectRequest(1L, 30L, null, USER_ROLE, null));
         }
 
-        @Test @DisplayName("Lanza excepción si no es el capitán")
+        @Test @DisplayName("Lanza excepción si no es capitán ni privilegiado")
         void rejectRequest_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.rejectRequest(1L, 30L, 99L, null));
+                    () -> teamService.rejectRequest(1L, 30L, 99L, USER_ROLE, null));
         }
 
         @Test @DisplayName("Lanza excepción si no hay solicitud pendiente")
         void rejectRequest_noRequest() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(IllegalStateException.class,
-                    () -> teamService.rejectRequest(1L, 99L, CAPTAIN_ID, null));
+                    () -> teamService.rejectRequest(1L, 99L, CAPTAIN_ID, CAPTAIN_ROLE, null));
         }
 
         @Test @DisplayName("Lanza excepción si equipo no existe")
         void rejectRequest_notFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.rejectRequest(99L, 30L, CAPTAIN_ID, null));
+                    () -> teamService.rejectRequest(99L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, null));
         }
     }
 
@@ -360,36 +397,48 @@ class TeamServiceFullTest {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             when(teamRepository.save(any())).thenReturn(team);
             when(teamMapper.toDto(any())).thenReturn(responseDTO);
-            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, "Bearer token"));
+            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, "Bearer token"));
             assertThat(team.getPlayers()).contains(30L);
         }
 
-        @Test @DisplayName("Lanza excepción si userId es null")
+        @Test @DisplayName("Admin acepta solicitud aunque no sea capitán")
+        void acceptRequest_adminCanAccept() {
+            team.setRequests(new ArrayList<>(List.of(30L)));
+            team.setPlayers(new ArrayList<>(List.of(CAPTAIN_ID)));
+            team.setCurrentPlayers(1);
+            mockWebClientOk();
+            when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
+            when(teamRepository.save(any())).thenReturn(team);
+            when(teamMapper.toDto(any())).thenReturn(responseDTO);
+            assertDoesNotThrow(() -> teamService.acceptRequest(1L, 30L, 99L, ADMIN_ROLE, "Bearer token"));
+        }
+
+        @Test @DisplayName("Lanza excepción si userId es null y no es privilegiado")
         void acceptRequest_nullUserId() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.acceptRequest(1L, 30L, null, null));
+                    () -> teamService.acceptRequest(1L, 30L, null, USER_ROLE, null));
         }
 
-        @Test @DisplayName("Lanza excepción si no es el capitán")
+        @Test @DisplayName("Lanza excepción si no es capitán ni privilegiado")
         void acceptRequest_notCaptain() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(UnauthorizedException.class,
-                    () -> teamService.acceptRequest(1L, 30L, 99L, null));
+                    () -> teamService.acceptRequest(1L, 30L, 99L, USER_ROLE, null));
         }
 
         @Test @DisplayName("Lanza excepción si no hay solicitud pendiente")
         void acceptRequest_noRequest() {
             when(teamRepository.findById(1L)).thenReturn(Optional.of(team));
             assertThrows(IllegalStateException.class,
-                    () -> teamService.acceptRequest(1L, 99L, CAPTAIN_ID, null));
+                    () -> teamService.acceptRequest(1L, 99L, CAPTAIN_ID, CAPTAIN_ROLE, null));
         }
 
         @Test @DisplayName("Lanza excepción si equipo no existe")
         void acceptRequest_notFound() {
             when(teamRepository.findById(99L)).thenReturn(Optional.empty());
             assertThrows(ResourceNotFoundException.class,
-                    () -> teamService.acceptRequest(99L, 30L, CAPTAIN_ID, null));
+                    () -> teamService.acceptRequest(99L, 30L, CAPTAIN_ID, CAPTAIN_ROLE, null));
         }
     }
 

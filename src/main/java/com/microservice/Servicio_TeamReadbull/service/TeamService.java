@@ -63,11 +63,16 @@ public class TeamService {
 
     // Solo el capitán de ESE equipo puede actualizar datos del equipo
     // y solo si no está en torneo Activo o En Progreso
-    public TeamResponseDTO updateTeam(Long id, Long captainId, TeamRequestDTO dto) {
+    // Capitán de ESE equipo, ADMIN u ORGANIZER pueden actualizar datos del equipo
+    // y solo si no está en torneo Activo o En Progreso
+    public TeamResponseDTO updateTeam(Long id, Long userId, String role, TeamRequestDTO dto) {
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", id));
 
-        if (!team.getIdCaptain().equals(captainId)) {
+        boolean isPrivileged = "ADMIN".equals(role) || "ORGANIZER".equals(role);
+        boolean isCaptainOfThisTeam = team.getIdCaptain().equals(userId);
+
+        if (!isPrivileged && !isCaptainOfThisTeam) {
             throw UnauthorizedException.notCaptain(id);
         }
 
@@ -83,16 +88,18 @@ public class TeamService {
         team.setCurrentPlayers(team.getPlayers().size());
 
         Team updated = teamRepository.save(team);
-        log.info("Equipo con ID {} actualizado por capitán ID: {}", id, captainId);
+        log.info("Equipo con ID {} actualizado por usuario ID: {} (rol: {})", id, userId, role);
         return teamMapper.toDto(updated);
     }
 
-    public void removePlayer(Long teamId, Long playerId, Long captainId) {
+    public void removePlayer(Long teamId, Long playerId, Long userId, String role) {
         Team team = teamRepository.findById(teamId)
             .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        // Verificar que quien elimina es el capitán
-        if (!team.getIdCaptain().equals(captainId)) {
+        boolean isPrivileged = "ADMIN".equals(role) || "ORGANIZER".equals(role);
+        boolean isCaptainOfThisTeam = team.getIdCaptain().equals(userId);
+
+        if (!isPrivileged && !isCaptainOfThisTeam) {
             throw UnauthorizedException.notCaptain(teamId);
         }
 
@@ -111,8 +118,8 @@ public class TeamService {
         team.setCurrentPlayers(team.getCurrentPlayers() - 1);
         teamRepository.save(team);
 
-        log.info("Jugador ID {} eliminado del equipo ID {} por capitán ID {}", 
-            playerId, teamId, captainId);
+        log.info("Jugador ID {} eliminado del equipo ID {} por usuario ID {} (rol: {})", 
+            playerId, teamId, userId, role);
     }
 
     // Solo organizador o admin puede actualizar el estado del torneo
@@ -135,11 +142,14 @@ public class TeamService {
     }
 
     // Solo el capitán de ESE equipo puede ver las solicitudes pendientes
-    public List<Long> getPendingRequest(Long teamId, Long captainId) {
+    public List<Long> getPendingRequest(Long teamId, Long userId, String role) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        if (!team.getIdCaptain().equals(captainId)) {
+        boolean isPrivileged = "ADMIN".equals(role) || "ORGANIZER".equals(role);
+        boolean isCaptainOfThisTeam = team.getIdCaptain().equals(userId);
+
+        if (!isPrivileged && !isCaptainOfThisTeam) {
             throw UnauthorizedException.notCaptain(teamId);
         }
 
@@ -147,11 +157,14 @@ public class TeamService {
     }
 
     // Solo el capitán de ESE equipo puede rechazar solicitudes
-    public void rejectRequest(Long teamId, Long playerId, Long captainId, String authHeader) {
+    public void rejectRequest(Long teamId, Long playerId, Long userId, String role, String authHeader) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        if (captainId == null || !team.getIdCaptain().equals(captainId)) {
+        boolean isPrivileged = "ADMIN".equals(role) || "ORGANIZER".equals(role);
+        boolean isCaptainOfThisTeam = userId != null && team.getIdCaptain().equals(userId);
+
+        if (!isPrivileged && !isCaptainOfThisTeam) {
             throw UnauthorizedException.notCaptain(teamId);
         }
 
@@ -161,16 +174,19 @@ public class TeamService {
 
         team.getRequests().remove(playerId);
         teamRepository.save(team);
-        log.info("Solicitud del jugador ID {} rechazada en equipo ID {} por capitán ID {}", playerId, teamId, captainId);
+        log.info("Solicitud del jugador ID {} rechazada en equipo ID {} por usuario ID {} (rol: {})", playerId, teamId, userId, role);
     }
 
     // Solo el capitán de ESE equipo puede aceptar solicitudes
     // Valida dorsales y programas académicos al aceptar
-    public TeamResponseDTO acceptRequest(Long teamId, Long playerId, Long userId, String authHeader) {
+    public TeamResponseDTO acceptRequest(Long teamId, Long playerId, Long userId, String role, String authHeader) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
 
-        if (userId == null || !team.getIdCaptain().equals(userId)) {
+        boolean isPrivileged = "ADMIN".equals(role) || "ORGANIZER".equals(role);
+        boolean isCaptainOfThisTeam = userId != null && team.getIdCaptain().equals(userId);
+
+        if (!isPrivileged && !isCaptainOfThisTeam) {
             throw UnauthorizedException.notCaptain(teamId);
         }
 
@@ -196,7 +212,7 @@ public class TeamService {
             response.setWarning("El equipo no cumple con la mitad de jugadores de programas permitidos.");
         }
 
-        log.info("Solicitud del jugador ID {} aceptada en equipo ID {} por capitán ID {}", playerId, teamId, userId);
+        log.info("Solicitud del jugador ID {} aceptada en equipo ID {} por usuario ID {} (rol: {})", playerId, teamId, userId, role);
         return response;
     }
 

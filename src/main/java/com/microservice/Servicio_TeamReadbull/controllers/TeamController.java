@@ -68,8 +68,9 @@ public class TeamController {
     public ResponseEntity<TeamResponseDTO> updateTeam(
             @PathVariable Long id,
             @Valid @RequestBody TeamRequestDTO dto,
-            @RequestHeader("X-User-Id") Long captainId) {
-        TeamResponseDTO response = teamService.updateTeam(id, captainId, dto);
+            @RequestHeader("X-User-Id") Long captainId,
+            @RequestHeader("X-User-Role") String role) {
+        TeamResponseDTO response = teamService.updateTeam(id, captainId, role, dto);
         return ResponseEntity.ok(response);
     }
 
@@ -98,9 +99,10 @@ public class TeamController {
     public ResponseEntity<Void> removePlayer(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
-            @RequestHeader("X-User-Id") Long captainId) {
+            @RequestHeader("X-User-Id") Long captainId,
+            @RequestHeader("X-User-Role") String role) {
         
-        teamService.removePlayer(teamId, playerId, captainId);
+        teamService.removePlayer(teamId, playerId, captainId, role);
         return ResponseEntity.noContent().build();
     }
 
@@ -109,8 +111,9 @@ public class TeamController {
     @PreAuthorize("hasRole('CAPTAIN') or hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<List<Long>> getPendingRequest(
             @PathVariable Long teamId,
-            @RequestHeader("X-User-Id") Long captainId) {
-        List<Long> response = teamService.getPendingRequest(teamId, captainId);
+            @RequestHeader("X-User-Id") Long captainId,
+            @RequestHeader("X-User-Role") String role) {
+        List<Long> response = teamService.getPendingRequest(teamId, captainId, role);
         return ResponseEntity.ok(response);
     }
 
@@ -120,8 +123,10 @@ public class TeamController {
     public ResponseEntity<Void> acceptRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
-            @RequestHeader("X-User-Id") Long captainId) {
-        teamService.acceptRequest(teamId, playerId, captainId, null);
+            @RequestHeader("X-User-Id") Long captainId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("Authorization") String authHeader) {
+        teamService.acceptRequest(teamId, playerId, captainId, role, authHeader);
         return ResponseEntity.noContent().build();
     }
 
@@ -131,8 +136,10 @@ public class TeamController {
     public ResponseEntity<Void> rejectRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
-            @RequestHeader("X-User-Id") Long captainId) {
-        teamService.rejectRequest(teamId, playerId, captainId, null);
+            @RequestHeader("X-User-Id") Long captainId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("Authorization") String authHeader) {
+        teamService.rejectRequest(teamId, playerId, captainId, role, authHeader);
         return ResponseEntity.noContent().build();
     }
 

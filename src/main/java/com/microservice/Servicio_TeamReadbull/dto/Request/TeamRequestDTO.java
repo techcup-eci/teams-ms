@@ -15,7 +15,7 @@ public class TeamRequestDTO {
     @NotBlank(message = "El nombre del equipo es obligatorio")
     private String name;
 
-    private Long idTournament;
+    private String idTournament;
 
     private String colors;
 

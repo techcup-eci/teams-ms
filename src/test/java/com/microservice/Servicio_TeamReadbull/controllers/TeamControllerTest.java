@@ -49,7 +49,7 @@ class TeamControllerTest {
 
         requestDTO = TeamRequestDTO.builder()
                 .name("Redbull FC")
-                .idTournament(1L)
+                .idTournament("1")
                 .colors("Rojo")
                 .photo("foto.png")
                 .build();
@@ -215,13 +215,14 @@ class TeamControllerTest {
     class AcceptRequest {
 
         @Test
-        @DisplayName("Retorna 204 al aceptar")
-        void acceptRequest_returns204() {
+        @DisplayName("Retorna 200 con el DTO del equipo actualizado")
+        void acceptRequest_returns200() {
             when(teamService.acceptRequest(1L, 30L, CAPTAIN_ID, null)).thenReturn(responseDTO);
 
-            ResponseEntity<Void> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
+            ResponseEntity<TeamResponseDTO> response = teamController.acceptRequest(1L, 30L, CAPTAIN_ID);
 
-            assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
         }
     }
 

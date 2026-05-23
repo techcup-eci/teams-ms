@@ -30,7 +30,7 @@ class TeamMapperTest {
         team.setId(1L);
         team.setName("Redbull FC");
         team.setIdCaptain(10L);
-        team.setIdTournament(5L);
+        team.setIdTournament("5");
         team.setColors("Rojo y Azul");
         team.setPhoto("foto.png");
         team.setTournamentStatus(Team.TournamentStatus.NONE);
@@ -43,7 +43,7 @@ class TeamMapperTest {
         assertEquals(1L, dto.getId());
         assertEquals("Redbull FC", dto.getName());
         assertEquals(10L, dto.getCaptainId());
-        assertEquals(5L, dto.getIdTournament());
+        assertEquals("5", dto.getIdTournament());
         assertEquals("Rojo y Azul", dto.getColors());
         assertEquals("foto.png", dto.getPhoto());
         assertEquals(Team.TournamentStatus.NONE, dto.getTournamentStatus());
@@ -70,7 +70,7 @@ class TeamMapperTest {
     void toEntity_mapsFields() {
         TeamRequestDTO dto = TeamRequestDTO.builder()
                 .name("Nuevo Equipo")
-                .idTournament(3L)
+                .idTournament("3")
                 .colors("Verde")
                 .photo("verde.png")
                 .build();
@@ -79,7 +79,7 @@ class TeamMapperTest {
 
         assertNotNull(team);
         assertEquals("Nuevo Equipo", team.getName());
-        assertEquals(3L, team.getIdTournament());
+        assertEquals("3", team.getIdTournament());
         assertEquals("Verde", team.getColors());
         assertEquals("verde.png", team.getPhoto());
         assertNull(team.getId());

@@ -21,4 +21,10 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     @Query("SELECT COUNT(t) > 0 FROM Team t JOIN t.players p WHERE p = :jugadorId")
     boolean existsPlayerInAnyTeam(@Param("jugadorId") Long jugadorId);
+
+    /** Check if a captain already has a team for a specific tournament */
+    boolean existsByIdCaptainAndIdTournament(Long captainId, String idTournament);
+
+    /** Find the team where the user is captain */
+    Optional<Team> findByIdCaptain(Long captainId);
 }

@@ -117,12 +117,12 @@ public class TeamController {
     // Solo el capitán puede aceptar solicitudes de su equipo
     @PostMapping("/{teamId}/solicitudes/{playerId}/accept")
     @PreAuthorize("hasRole('CAPTAIN')")
-    public ResponseEntity<Void> acceptRequest(
+    public ResponseEntity<TeamResponseDTO> acceptRequest(
             @PathVariable Long teamId,
             @PathVariable Long playerId,
             @RequestHeader("X-User-Id") Long captainId) {
-        teamService.acceptRequest(teamId, playerId, captainId, null);
-        return ResponseEntity.noContent().build();
+        TeamResponseDTO response = teamService.acceptRequest(teamId, playerId, captainId, null);
+        return ResponseEntity.ok(response);
     }
 
     // Solo el capitán puede rechazar solicitudes de su equipo
@@ -154,6 +154,17 @@ public class TeamController {
             @RequestParam String code,
             @RequestHeader("X-User-Id") Long playerId) {
         teamService.sendRequestBycode(code, playerId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Un jugador puede salirse de su equipo (no el capitán)
+    // Solo si el torneo no está activo o en progreso
+    // No requiere rol específico — la validación está en el service
+    @PostMapping("/{teamId}/leave")
+    public ResponseEntity<Void> leaveTeam(
+            @PathVariable Long teamId,
+            @RequestHeader("X-User-Id") Long playerId) {
+        teamService.leaveTeam(teamId, playerId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -37,7 +37,7 @@ public class Team implements ObservableSubject, Observer {
     private List<Observer> subscribers = new ArrayList<>();
 
     @Column(nullable = true)
-    private Long idTournament;
+    private String idTournament;
 
     @Column(nullable = false, updatable = false)
     private Long idCaptain;

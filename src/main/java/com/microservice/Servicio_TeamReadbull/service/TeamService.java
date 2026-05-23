@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.microservice.Servicio_TeamReadbull.dto.Request.TeamRequestDTO;
 import com.microservice.Servicio_TeamReadbull.dto.Response.TeamResponseDTO;
+import com.microservice.Servicio_TeamReadbull.exception.DuplicateResourceException;
 import com.microservice.Servicio_TeamReadbull.exception.ResourceNotFoundException;
 import com.microservice.Servicio_TeamReadbull.exception.UnauthorizedException;
 import com.microservice.Servicio_TeamReadbull.mappers.TeamMapper;
@@ -29,6 +30,18 @@ public class TeamService {
 
     // El captainId viene del token JWT via header X-User-Id — no del body
     public TeamResponseDTO createTeam(TeamRequestDTO dto, Long captainId) {
+        // Validate captain doesn't already have a team for this tournament
+        if (dto.getIdTournament() != null && !dto.getIdTournament().isBlank()) {
+            if (teamRepository.existsByIdCaptainAndIdTournament(captainId, dto.getIdTournament())) {
+                throw new DuplicateResourceException("Ya tienes un equipo registrado para este torneo.");
+            }
+        }
+
+        // Also validate captain isn't already a player in another team
+        if (teamRepository.existsPlayerInAnyTeam(captainId)) {
+            throw new DuplicateResourceException("Ya perteneces a otro equipo.");
+        }
+
         Team team = new Team();
 
         ArrayList<Long> initialPlayers = new ArrayList<>();
@@ -254,6 +267,34 @@ public class TeamService {
         team.getRequests().add(playerId);
         teamRepository.save(team);
         log.info("Jugador ID {} envió solicitud al equipo ID {} por código", playerId, team.getId());
+    }
+
+    // Un jugador puede salirse de su equipo (no el capitán)
+    // Solo si el torneo no está activo o en progreso
+    public void leaveTeam(Long teamId, Long playerId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> ResourceNotFoundException.notFound("Team", teamId));
+
+        // El capitán no puede salirse (debe transferir o eliminar el equipo)
+        if (team.getIdCaptain().equals(playerId)) {
+            throw new IllegalStateException("El capitán no puede salirse del equipo. Debe transferir el rol o eliminar el equipo.");
+        }
+
+        // No se puede salir si el torneo está activo o en progreso
+        if (team.isInActiveTournament()) {
+            throw new IllegalStateException("No puedes salirte del equipo mientras el torneo está activo o en progreso.");
+        }
+
+        // Verificar que el jugador esté en el equipo
+        if (!team.getPlayers().contains(playerId)) {
+            throw new IllegalStateException("El jugador no pertenece a este equipo.");
+        }
+
+        team.getPlayers().remove(playerId);
+        team.setCurrentPlayers(team.getPlayers().size());
+        teamRepository.save(team);
+
+        log.info("Jugador ID {} se salió del equipo ID {}", playerId, teamId);
     }
 
     // Valida que no haya dorsales duplicados via users-ms

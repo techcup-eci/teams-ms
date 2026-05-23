@@ -16,7 +16,7 @@ public class TeamResponseDTO {
 
     private Long id;
     private String name;
-    private Long idTournament;
+    private String idTournament;
     private Long captainId;
     private List<Long> players;
     private int currentPlayers;

@@ -62,7 +62,7 @@ class TeamServiceFullTest {
 
         dto = TeamRequestDTO.builder()
                 .name("Nuevo Equipo")
-                .idTournament(1L)
+                .idTournament("1")
                 .colors("Rojo")
                 .photo("foto.png")
                 .build();

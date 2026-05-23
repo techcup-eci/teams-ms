@@ -109,4 +109,7 @@ jobs:
           az containerapp update \
             --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image ${{ needs.docker.outputs.image-tag }}
+            --image ${{ needs.docker.outputs.image-tag }} \
+            --registry-server ghcr.io \
+            --registry-username ${{ secrets.DOCKER_USERNAME }} \
+            --registry-password ${{ secrets.DOCKER_PASSWORD }}
